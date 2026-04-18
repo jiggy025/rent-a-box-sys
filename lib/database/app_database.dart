@@ -35,8 +35,8 @@ class Boxes extends Table {
 
   @override
   List<Set<Column<Object>>> get uniqueKeys => [
-        {boxNumber},
-      ];
+    {boxNumber},
+  ];
 }
 
 class RentalAssignments extends Table {
@@ -68,42 +68,46 @@ class LogEntries extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
-  AppDatabase.forTesting(QueryExecutor executor) : super(executor);
+  AppDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          await _ensureSchemaProtections();
-        },
-        beforeOpen: (details) async {
-          await _ensureSchemaProtections();
-        },
-      );
+    onCreate: (m) async {
+      await m.createAll();
+      await _ensureSchemaProtections();
+    },
+    beforeOpen: (details) async {
+      await _ensureSchemaProtections();
+    },
+  );
 
   Future<String> createSeller({
     required String name,
     String? contactInfo,
   }) async {
     final row = await into(sellers).insertReturning(
-      SellersCompanion.insert(
-        name: name,
-        contactInfo: Value(contactInfo),
-      ),
+      SellersCompanion.insert(name: name, contactInfo: Value(contactInfo)),
     );
 
     return row.id;
   }
 
   Future<String> createBox({required String boxNumber}) async {
-    final row = await into(boxes).insertReturning(
-      BoxesCompanion.insert(boxNumber: boxNumber),
-    );
+    final row = await into(
+      boxes,
+    ).insertReturning(BoxesCompanion.insert(boxNumber: boxNumber));
 
     return row.id;
+  }
+
+  Future<Boxe?> boxByNumber(String boxNumber) {
+    return (select(boxes)..where(
+          (tbl) => tbl.boxNumber.equals(boxNumber) & tbl.isActive.equals(true),
+        ))
+        .getSingleOrNull();
   }
 
   Future<String> createRentalAssignment({
@@ -116,10 +120,7 @@ class AppDatabase extends _$AppDatabase {
     }
 
     final row = await into(rentalAssignments).insertReturning(
-      RentalAssignmentsCompanion.insert(
-        sellerId: sellerId,
-        boxId: boxId,
-      ),
+      RentalAssignmentsCompanion.insert(sellerId: sellerId, boxId: boxId),
     );
 
     return row.id;
@@ -156,12 +157,9 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       final active = await activeAssignmentForBox(boxId);
       if (active != null) {
-        await (update(rentalAssignments)..where((tbl) => tbl.id.equals(active.id)))
-            .write(
-          RentalAssignmentsCompanion(
-            endedAt: Value(DateTime.now()),
-          ),
-        );
+        await (update(rentalAssignments)
+              ..where((tbl) => tbl.id.equals(active.id)))
+            .write(RentalAssignmentsCompanion(endedAt: Value(DateTime.now())));
       }
 
       await createRentalAssignment(sellerId: nextSellerId, boxId: boxId);
@@ -187,23 +185,29 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<RentalAssignment>> activeAssignmentsForSeller(String sellerId) {
-    return (select(rentalAssignments)..where(
-          (tbl) => tbl.sellerId.equals(sellerId) & tbl.endedAt.isNull(),
-        ))
+    return (select(
+          rentalAssignments,
+        )..where((tbl) => tbl.sellerId.equals(sellerId) & tbl.endedAt.isNull()))
         .get();
   }
 
+  Stream<List<Seller>> watchActiveSellers() {
+    return (select(sellers)
+          ..where((tbl) => tbl.isActive.equals(true))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+        .watch();
+  }
+
   Future<RentalAssignment?> activeAssignmentForBox(String boxId) {
-    return (select(rentalAssignments)..where(
-          (tbl) => tbl.boxId.equals(boxId) & tbl.endedAt.isNull(),
-        ))
+    return (select(rentalAssignments)
+          ..where((tbl) => tbl.boxId.equals(boxId) & tbl.endedAt.isNull()))
         .getSingleOrNull();
   }
 
   Future<RentalAssignment?> assignmentById(String assignmentId) {
-    return (select(rentalAssignments)
-          ..where((tbl) => tbl.id.equals(assignmentId)))
-        .getSingleOrNull();
+    return (select(
+      rentalAssignments,
+    )..where((tbl) => tbl.id.equals(assignmentId))).getSingleOrNull();
   }
 
   Future<double> currentBoxTotal(String boxId) async {
@@ -289,20 +293,20 @@ class AppDatabase extends _$AppDatabase {
       ''',
       readsFrom: {boxes, rentalAssignments, sellers, logEntries},
     ).watch().map(
-          (rows) => rows
-              .map(
-                (row) => DashboardBoxSummary(
-                  boxId: row.read<String>('box_id'),
-                  boxNumber: row.read<String>('box_number'),
-                  assignmentId: row.read<String?>('assignment_id'),
-                  sellerId: row.read<String?>('seller_id'),
-                  sellerName: row.read<String?>('seller_name'),
-                  isVacant: row.read<int>('is_vacant') == 1,
-                  total: row.read<double>('total'),
-                ),
-              )
-              .toList(growable: false),
-        );
+      (rows) => rows
+          .map(
+            (row) => DashboardBoxSummary(
+              boxId: row.read<String>('box_id'),
+              boxNumber: row.read<String>('box_number'),
+              assignmentId: row.read<String?>('assignment_id'),
+              sellerId: row.read<String?>('seller_id'),
+              sellerName: row.read<String?>('seller_name'),
+              isVacant: row.read<int>('is_vacant') == 1,
+              total: row.read<double>('total'),
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 
   Stream<List<LogEntry>> watchEntriesForAssignment(String assignmentId) {
@@ -359,15 +363,12 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _ensureSchemaProtections() async {
-    await customStatement(
-      '''
+    await customStatement('''
       CREATE UNIQUE INDEX IF NOT EXISTS rental_assignments_active_box_unique_idx
       ON rental_assignments (box_id)
       WHERE ended_at IS NULL
-      ''',
-    );
-    await customStatement(
-      '''
+      ''');
+    await customStatement('''
       CREATE TRIGGER IF NOT EXISTS log_entries_active_assignment_only
       BEFORE INSERT ON log_entries
       FOR EACH ROW
@@ -381,8 +382,7 @@ class AppDatabase extends _$AppDatabase {
           THEN RAISE(ABORT, 'Cannot add log entry to a closed assignment.')
         END;
       END;
-      ''',
-    );
+      ''');
   }
 }
 

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:drift/native.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_a_box_sys/database/app_database.dart';
@@ -10,6 +9,7 @@ import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
 import 'package:rent_a_box_sys/providers/box_detail_providers.dart';
 import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
 import 'package:rent_a_box_sys/providers/database_provider.dart';
+import 'package:rent_a_box_sys/providers/seller_providers.dart';
 
 import '../../helpers/test_app.dart';
 
@@ -31,8 +31,10 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final sellerId = await db.createSeller(name: 'Mae');
     final boxId = await db.createBox(boxNumber: '01');
-    final assignmentId =
-        await db.createRentalAssignment(sellerId: sellerId, boxId: boxId);
+    final assignmentId = await db.createRentalAssignment(
+      sellerId: sellerId,
+      boxId: boxId,
+    );
     final assignment = await db.activeAssignmentForBox(boxId);
     final entriesController = StreamController<List<LogEntry>>.broadcast();
     final totalController = StreamController<double>.broadcast();
@@ -46,29 +48,27 @@ void main() {
         BoxDetailScreen(boxId: boxId),
         overrides: [
           databaseProvider.overrideWithValue(db),
-          activeAssignmentForBoxProvider(boxId).overrideWith(
-            (ref) => Future.value(assignment),
-          ),
-          assignmentEntriesProvider(assignmentId).overrideWith(
-            (ref) => entriesController.stream,
-          ),
-          assignmentTotalProvider(assignmentId).overrideWith(
-            (ref) => totalController.stream,
-          ),
+          activeAssignmentForBoxProvider(
+            boxId,
+          ).overrideWith((ref) => Future.value(assignment)),
+          assignmentEntriesProvider(
+            assignmentId,
+          ).overrideWith((ref) => entriesController.stream),
+          assignmentTotalProvider(
+            assignmentId,
+          ).overrideWith((ref) => totalController.stream),
           dashboardBoxesProvider.overrideWith(
-            (ref) => Stream.value(
-              const [
-                DashboardBoxSummary(
-                  boxId: 'box-01',
-                  boxNumber: '01',
-                  assignmentId: 'assign-01',
-                  sellerId: 'seller-01',
-                  sellerName: 'Mae',
-                  isVacant: false,
-                  total: 0,
-                ),
-              ],
-            ),
+            (ref) => Stream.value(const [
+              DashboardBoxSummary(
+                boxId: 'box-01',
+                boxNumber: '01',
+                assignmentId: 'assign-01',
+                sellerId: 'seller-01',
+                sellerName: 'Mae',
+                isVacant: false,
+                total: 0,
+              ),
+            ]),
           ),
         ],
       ),
@@ -85,9 +85,9 @@ void main() {
     await tester.pump();
 
     final entries = await tester.runAsync(
-      () => (db.select(db.logEntries)
-            ..where((tbl) => tbl.rentalAssignmentId.equals(assignmentId)))
-          .get(),
+      () => (db.select(
+        db.logEntries,
+      )..where((tbl) => tbl.rentalAssignmentId.equals(assignmentId))).get(),
     );
     final total = await tester.runAsync(() => db.currentBoxTotal(boxId));
 
@@ -96,6 +96,62 @@ void main() {
     await pumpUntilFound(tester, find.text('Dress'));
 
     expect(find.text('Dress'), findsOneWidget);
-    expect(find.text('₱ 250.00'), findsWidgets);
+    expect(find.textContaining('250.00'), findsWidgets);
+  });
+
+  testWidgets('occupies a vacant box from the detail screen', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final controller = StreamController<List<DashboardBoxSummary>>.broadcast();
+    addTearDown(() => tester.runAsync(db.close));
+    addTearDown(controller.close);
+
+    await db.createSeller(name: 'Ella');
+    final boxId = await db.createBox(boxNumber: '02');
+    final sellers = await (db.select(db.sellers)).get();
+    final initialRows = await db.dashboardBoxSummaries();
+
+    await tester.pumpWidget(
+      wrapWithTestApp(
+        BoxDetailScreen(boxId: boxId),
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          activeSellersProvider.overrideWith((ref) => Stream.value(sellers)),
+          assignmentEntriesProvider.overrideWith(
+            (ref, assignmentId) => Stream.value(const <LogEntry>[]),
+          ),
+          assignmentTotalProvider.overrideWith(
+            (ref, assignmentId) => Stream.value(0),
+          ),
+          dashboardBoxesProvider.overrideWith((ref) => controller.stream),
+        ],
+      ),
+    );
+
+    controller.add(initialRows);
+    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.text('Occupy this vacant box'));
+
+    await tester.tap(find.text('Occupy this vacant box'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('reassign-seller-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ella').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Occupy Box').last);
+    await tester.pumpAndSettle();
+
+    final updatedRows = await tester.runAsync(db.dashboardBoxSummaries);
+    controller.add(updatedRows ?? const <DashboardBoxSummary>[]);
+    await tester.pumpAndSettle();
+
+    await pumpUntilFound(tester, find.text('Ella'));
+
+    final assignment = await tester.runAsync(
+      () => db.activeAssignmentForBox(boxId),
+    );
+    expect(assignment, isNotNull);
+    expect(find.text('Ella'), findsOneWidget);
   });
 }

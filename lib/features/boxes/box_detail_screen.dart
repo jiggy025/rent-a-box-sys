@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../dashboard/widgets/reassign_box_sheet.dart';
 import '../../models/dashboard_box_summary.dart';
 import '../../providers/box_detail_providers.dart';
 import '../../providers/dashboard_providers.dart';
@@ -29,8 +30,33 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
     super.dispose();
   }
 
+  DashboardBoxSummary? _summaryForBox(List<DashboardBoxSummary> rows) {
+    for (final row in rows) {
+      if (row.boxId == widget.boxId) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  void _openOccupySheet(DashboardBoxSummary? summary) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => ReassignBoxSheet(
+        initialBoxId: widget.boxId,
+        initialBoxNumber: summary?.boxNumber,
+        lockBoxNumber: true,
+        title: 'Occupy Box',
+        confirmLabel: 'Occupy Box',
+      ),
+    );
+  }
+
   Future<void> _submit(String assignmentId) async {
-    await ref.read(databaseProvider).addLogEntry(
+    await ref
+        .read(databaseProvider)
+        .addLogEntry(
           rentalAssignmentId: assignmentId,
           itemName: _itemController.text.trim(),
           price: double.parse(_priceController.text.trim()),
@@ -45,28 +71,56 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(symbol: '₱ ', decimalDigits: 2);
-    final assignmentAsync =
-        ref.watch(activeAssignmentForBoxProvider(widget.boxId));
+    final currency = NumberFormat.currency(symbol: 'PHP ', decimalDigits: 2);
+    final assignmentAsync = ref.watch(
+      activeAssignmentForBoxProvider(widget.boxId),
+    );
     final dashboardAsync = ref.watch(dashboardBoxesProvider);
+    final summary = _summaryForBox(
+      dashboardAsync.valueOrNull ?? const <DashboardBoxSummary>[],
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Box Detail')),
       body: assignmentAsync.when(
         data: (assignment) {
           if (assignment == null) {
-            return const Center(child: Text('This box is currently vacant.'));
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (summary != null) ...[
+                    Text(
+                      'BOX ${summary.boxNumber}',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Vacant',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Text(
+                    'This box is currently vacant.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: () => _openOccupySheet(summary),
+                    icon: const Icon(Icons.person_add_alt_1),
+                    label: const Text('Occupy this vacant box'),
+                  ),
+                ],
+              ),
+            );
           }
 
           final totalAsync = ref.watch(assignmentTotalProvider(assignment.id));
-          final entriesAsync = ref.watch(assignmentEntriesProvider(assignment.id));
-          DashboardBoxSummary? summary;
-          for (final row in dashboardAsync.valueOrNull ?? <DashboardBoxSummary>[]) {
-            if (row.boxId == widget.boxId) {
-              summary = row;
-              break;
-            }
-          }
+          final entriesAsync = ref.watch(
+            assignmentEntriesProvider(assignment.id),
+          );
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -136,7 +190,8 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
                         );
                       },
                     ),
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, stack) => Text(error.toString()),
                   ),
                 ),

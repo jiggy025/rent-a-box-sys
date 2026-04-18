@@ -17,7 +17,7 @@ class BoxCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(symbol: '₱ ', decimalDigits: 2);
+    final currency = NumberFormat.currency(symbol: 'PHP ', decimalDigits: 2);
 
     return InkWell(
       onTap: onTap,
@@ -62,9 +62,7 @@ class BoxCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                Chip(
-                  label: Text(summary.isVacant ? 'Vacant' : 'Occupied'),
-                ),
+                Chip(label: Text(summary.isVacant ? 'Vacant' : 'Occupied')),
                 const Spacer(),
                 GestureDetector(
                   onTap: summary.sellerId == null ? null : onSellerTap,

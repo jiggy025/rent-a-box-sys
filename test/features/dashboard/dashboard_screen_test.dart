@@ -8,36 +8,36 @@ import 'package:rent_a_box_sys/features/dashboard/dashboard_screen.dart';
 import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
 import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
 import 'package:rent_a_box_sys/providers/database_provider.dart';
+import 'package:rent_a_box_sys/providers/seller_providers.dart';
 
 import '../../helpers/test_app.dart';
 
 void main() {
-  testWidgets('renders occupied and vacant box cards and filters search',
-      (tester) async {
+  testWidgets('renders occupied and vacant box cards and filters search', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       wrapWithTestApp(
         const DashboardScreen(),
         overrides: [
           dashboardBoxesProvider.overrideWith(
-            (ref) => Stream.value(
-              const [
-                DashboardBoxSummary(
-                  boxId: 'box-01',
-                  boxNumber: '01',
-                  assignmentId: 'assign-01',
-                  sellerId: 'seller-01',
-                  sellerName: 'Mae',
-                  isVacant: false,
-                  total: 200,
-                ),
-                DashboardBoxSummary(
-                  boxId: 'box-02',
-                  boxNumber: '02',
-                  isVacant: true,
-                  total: 0,
-                ),
-              ],
-            ),
+            (ref) => Stream.value(const [
+              DashboardBoxSummary(
+                boxId: 'box-01',
+                boxNumber: '01',
+                assignmentId: 'assign-01',
+                sellerId: 'seller-01',
+                sellerName: 'Mae',
+                isVacant: false,
+                total: 200,
+              ),
+              DashboardBoxSummary(
+                boxId: 'box-02',
+                boxNumber: '02',
+                isVacant: true,
+                total: 0,
+              ),
+            ]),
           ),
         ],
       ),
@@ -63,9 +63,12 @@ void main() {
     addTearDown(controller.close);
     final maeId = await db.createSeller(name: 'Mae');
     await db.createSeller(name: 'Ella');
+    final sellers = await (db.select(db.sellers)).get();
     final boxId = await db.createBox(boxNumber: '01');
-    final assignmentId =
-        await db.createRentalAssignment(sellerId: maeId, boxId: boxId);
+    final assignmentId = await db.createRentalAssignment(
+      sellerId: maeId,
+      boxId: boxId,
+    );
     await db.addLogEntry(
       rentalAssignmentId: assignmentId,
       itemName: 'Dress',
@@ -79,23 +82,22 @@ void main() {
         overrides: [
           databaseProvider.overrideWithValue(db),
           dashboardBoxesProvider.overrideWith((ref) => controller.stream),
+          activeSellersProvider.overrideWith((ref) => Stream.value(sellers)),
         ],
       ),
     );
 
-    controller.add(
-      const [
-        DashboardBoxSummary(
-          boxId: 'box-01',
-          boxNumber: '01',
-          assignmentId: 'assign-01',
-          sellerId: 'seller-01',
-          sellerName: 'Mae',
-          isVacant: false,
-          total: 200,
-        ),
-      ],
-    );
+    controller.add(const [
+      DashboardBoxSummary(
+        boxId: 'box-01',
+        boxNumber: '01',
+        assignmentId: 'assign-01',
+        sellerId: 'seller-01',
+        sellerName: 'Mae',
+        isVacant: false,
+        total: 200,
+      ),
+    ]);
 
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add));
@@ -103,8 +105,14 @@ void main() {
     await tester.tap(find.text('Reassign Box'));
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('reassign-seller-name')), findsNothing);
+    expect(find.byKey(const Key('reassign-seller-dropdown')), findsOneWidget);
+
     await tester.enterText(find.byKey(const Key('reassign-box-number')), '01');
-    await tester.enterText(find.byKey(const Key('reassign-seller-name')), 'Ella');
+    await tester.tap(find.byKey(const Key('reassign-seller-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ella').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Confirm Reassignment'));
     await tester.pumpAndSettle();
 
@@ -113,6 +121,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ella'), findsOneWidget);
-    expect(find.text('₱ 0.00'), findsOneWidget);
+    expect(find.textContaining('0.00'), findsOneWidget);
   });
 }
