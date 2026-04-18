@@ -11,3 +11,5 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 final activeAssignmentCountProvider = StreamProvider<int>((ref) {
   return ref.watch(databaseProvider).watchActiveAssignmentCount();
 });
+
+final refreshTickProvider = StateProvider<int>((ref) => 0);
