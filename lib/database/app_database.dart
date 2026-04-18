@@ -261,6 +261,50 @@ class AppDatabase extends _$AppDatabase {
         .toList(growable: false);
   }
 
+  Stream<List<DashboardBoxSummary>> watchDashboardBoxes() {
+    return customSelect(
+      '''
+      SELECT
+        b.id AS box_id,
+        b.box_number,
+        ra.id AS assignment_id,
+        s.id AS seller_id,
+        s.name AS seller_name,
+        CASE WHEN ra.id IS NULL THEN 1 ELSE 0 END AS is_vacant,
+        COALESCE(
+          (
+            SELECT SUM(le.price)
+            FROM log_entries le
+            WHERE le.rental_assignment_id = ra.id
+          ),
+          0
+        ) AS total
+      FROM boxes b
+      LEFT JOIN rental_assignments ra
+        ON ra.box_id = b.id
+       AND ra.ended_at IS NULL
+      LEFT JOIN sellers s
+        ON s.id = ra.seller_id
+      ORDER BY b.box_number
+      ''',
+      readsFrom: {boxes, rentalAssignments, sellers, logEntries},
+    ).watch().map(
+          (rows) => rows
+              .map(
+                (row) => DashboardBoxSummary(
+                  boxId: row.read<String>('box_id'),
+                  boxNumber: row.read<String>('box_number'),
+                  assignmentId: row.read<String?>('assignment_id'),
+                  sellerId: row.read<String?>('seller_id'),
+                  sellerName: row.read<String?>('seller_name'),
+                  isVacant: row.read<int>('is_vacant') == 1,
+                  total: row.read<double>('total'),
+                ),
+              )
+              .toList(growable: false),
+        );
+  }
+
   Future<List<SellerHistoryRecord>> sellerHistory(String sellerId) async {
     final rows = await customSelect(
       '''

@@ -1,8 +1,11 @@
 import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_a_box_sys/database/app_database.dart';
 import 'package:rent_a_box_sys/features/setup/setup_screen.dart';
+import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
+import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
 import 'package:rent_a_box_sys/providers/database_provider.dart';
 
 import '../../helpers/test_app.dart';
@@ -28,7 +31,12 @@ void main() {
     await tester.pumpWidget(
       wrapWithTestApp(
         const SetupScreen(),
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          filteredDashboardBoxesProvider.overrideWith(
+            (ref) => const AsyncData(<DashboardBoxSummary>[]),
+          ),
+        ],
       ),
     );
 

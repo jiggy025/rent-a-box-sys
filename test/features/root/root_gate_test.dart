@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_a_box_sys/features/root/root_gate.dart';
+import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
+import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
 import 'package:rent_a_box_sys/providers/database_provider.dart';
 
 import '../../helpers/test_app.dart';
@@ -28,6 +31,9 @@ void main() {
           activeAssignmentCountProvider.overrideWith(
             (ref) => Stream<int>.value(0),
           ),
+          filteredDashboardBoxesProvider.overrideWith(
+            (ref) => const AsyncData(<DashboardBoxSummary>[]),
+          ),
         ],
       ),
     );
@@ -44,6 +50,9 @@ void main() {
         overrides: [
           activeAssignmentCountProvider.overrideWith(
             (ref) => Stream<int>.value(1),
+          ),
+          filteredDashboardBoxesProvider.overrideWith(
+            (ref) => const AsyncData(<DashboardBoxSummary>[]),
           ),
         ],
       ),
@@ -65,6 +74,9 @@ void main() {
         overrides: [
           activeAssignmentCountProvider.overrideWith(
             (ref) => controller.stream,
+          ),
+          filteredDashboardBoxesProvider.overrideWith(
+            (ref) => const AsyncData(<DashboardBoxSummary>[]),
           ),
         ],
       ),
