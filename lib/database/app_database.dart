@@ -77,30 +77,10 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
-          await customStatement(
-            '''
-            CREATE UNIQUE INDEX rental_assignments_active_box_unique_idx
-            ON rental_assignments (box_id)
-            WHERE ended_at IS NULL
-            ''',
-          );
-          await customStatement(
-            '''
-            CREATE TRIGGER log_entries_active_assignment_only
-            BEFORE INSERT ON log_entries
-            FOR EACH ROW
-            BEGIN
-              SELECT CASE
-                WHEN (
-                  SELECT ended_at
-                  FROM rental_assignments
-                  WHERE id = NEW.rental_assignment_id
-                ) IS NOT NULL
-                THEN RAISE(ABORT, 'Cannot add log entry to a closed assignment.')
-              END;
-            END;
-            ''',
-          );
+          await _ensureSchemaProtections();
+        },
+        beforeOpen: (details) async {
+          await _ensureSchemaProtections();
         },
       );
 
@@ -307,6 +287,33 @@ class AppDatabase extends _$AppDatabase {
           ),
         )
         .toList(growable: false);
+  }
+
+  Future<void> _ensureSchemaProtections() async {
+    await customStatement(
+      '''
+      CREATE UNIQUE INDEX IF NOT EXISTS rental_assignments_active_box_unique_idx
+      ON rental_assignments (box_id)
+      WHERE ended_at IS NULL
+      ''',
+    );
+    await customStatement(
+      '''
+      CREATE TRIGGER IF NOT EXISTS log_entries_active_assignment_only
+      BEFORE INSERT ON log_entries
+      FOR EACH ROW
+      BEGIN
+        SELECT CASE
+          WHEN (
+            SELECT ended_at
+            FROM rental_assignments
+            WHERE id = NEW.rental_assignment_id
+          ) IS NOT NULL
+          THEN RAISE(ABORT, 'Cannot add log entry to a closed assignment.')
+        END;
+      END;
+      ''',
+    );
   }
 }
 
