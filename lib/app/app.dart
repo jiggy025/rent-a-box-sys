@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/root/root_gate.dart';
 import 'app_theme.dart';
 
 class RentABoxApp extends StatelessWidget {
@@ -11,11 +12,7 @@ class RentABoxApp extends StatelessWidget {
       title: 'Rent-a-Box Ledger',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Rent-a-Box Ledger'),
-        ),
-      ),
+      home: const RootGate(),
     );
   }
 }
