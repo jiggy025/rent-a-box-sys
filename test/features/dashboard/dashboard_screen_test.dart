@@ -1,8 +1,13 @@
+import 'dart:async';
+
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rent_a_box_sys/database/app_database.dart';
 import 'package:rent_a_box_sys/features/dashboard/dashboard_screen.dart';
 import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
 import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
+import 'package:rent_a_box_sys/providers/database_provider.dart';
 
 import '../../helpers/test_app.dart';
 
@@ -49,5 +54,65 @@ void main() {
 
     expect(find.text('BOX 01'), findsNothing);
     expect(find.text('BOX 02'), findsOneWidget);
+  });
+
+  testWidgets('reassigns a box and resets the current total', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final controller = StreamController<List<DashboardBoxSummary>>.broadcast();
+    addTearDown(() => tester.runAsync(db.close));
+    addTearDown(controller.close);
+    final maeId = await db.createSeller(name: 'Mae');
+    await db.createSeller(name: 'Ella');
+    final boxId = await db.createBox(boxNumber: '01');
+    final assignmentId =
+        await db.createRentalAssignment(sellerId: maeId, boxId: boxId);
+    await db.addLogEntry(
+      rentalAssignmentId: assignmentId,
+      itemName: 'Dress',
+      price: 200,
+      claimerName: 'Cashier',
+    );
+
+    await tester.pumpWidget(
+      wrapWithTestApp(
+        const DashboardScreen(),
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          dashboardBoxesProvider.overrideWith((ref) => controller.stream),
+        ],
+      ),
+    );
+
+    controller.add(
+      const [
+        DashboardBoxSummary(
+          boxId: 'box-01',
+          boxNumber: '01',
+          assignmentId: 'assign-01',
+          sellerId: 'seller-01',
+          sellerName: 'Mae',
+          isVacant: false,
+          total: 200,
+        ),
+      ],
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reassign Box'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('reassign-box-number')), '01');
+    await tester.enterText(find.byKey(const Key('reassign-seller-name')), 'Ella');
+    await tester.tap(find.text('Confirm Reassignment'));
+    await tester.pumpAndSettle();
+
+    final updatedRows = await tester.runAsync(db.dashboardBoxSummaries);
+    controller.add(updatedRows ?? const <DashboardBoxSummary>[]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ella'), findsOneWidget);
+    expect(find.text('₱ 0.00'), findsOneWidget);
   });
 }

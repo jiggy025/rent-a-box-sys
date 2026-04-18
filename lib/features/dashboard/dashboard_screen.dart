@@ -2,10 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/dashboard_providers.dart';
+import 'widgets/add_box_sheet.dart';
+import 'widgets/add_seller_sheet.dart';
 import 'widgets/box_card.dart';
+import 'widgets/dashboard_actions_sheet.dart';
+import 'widgets/reassign_box_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
+
+  void _openSheet(BuildContext context, Widget child) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => child,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -13,6 +25,28 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _openSheet(
+            context,
+            DashboardActionsSheet(
+              onAddSeller: () {
+                Navigator.of(context).pop();
+                _openSheet(context, const AddSellerSheet());
+              },
+              onAddBox: () {
+                Navigator.of(context).pop();
+                _openSheet(context, const AddBoxSheet());
+              },
+              onReassign: () {
+                Navigator.of(context).pop();
+                _openSheet(context, const ReassignBoxSheet());
+              },
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
