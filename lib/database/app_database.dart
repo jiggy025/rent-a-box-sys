@@ -177,6 +177,15 @@ class AppDatabase extends _$AppDatabase {
     return row.read(countExpression) ?? 0;
   }
 
+  Stream<int> watchActiveAssignmentCount() {
+    final countExpression = rentalAssignments.id.count();
+    final query = selectOnly(rentalAssignments)
+      ..addColumns([countExpression])
+      ..where(rentalAssignments.endedAt.isNull());
+
+    return query.watchSingle().map((row) => row.read(countExpression) ?? 0);
+  }
+
   Future<List<RentalAssignment>> activeAssignmentsForSeller(String sellerId) {
     return (select(rentalAssignments)..where(
           (tbl) => tbl.sellerId.equals(sellerId) & tbl.endedAt.isNull(),

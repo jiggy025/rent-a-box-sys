@@ -8,6 +8,6 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-final activeAssignmentCountProvider = FutureProvider<int>((ref) {
-  return ref.watch(databaseProvider).activeAssignmentCount();
+final activeAssignmentCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(databaseProvider).watchActiveAssignmentCount();
 });
