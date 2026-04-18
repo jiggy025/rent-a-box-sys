@@ -68,4 +68,62 @@ void main() {
     expect(closed!.endedAt, isNotNull);
     expect(active!.sellerId, ellaId);
   });
+
+  test('database rejects a second active assignment for the same box', () async {
+    final maeId = await db.createSeller(name: 'Mae');
+    final ellaId = await db.createSeller(name: 'Ella');
+    final boxId = await db.createBox(boxNumber: '01');
+
+    await db.createRentalAssignment(sellerId: maeId, boxId: boxId);
+
+    expect(
+      () => db.customStatement(
+        '''
+        INSERT INTO rental_assignments (id, seller_id, box_id, started_at, created_at)
+        VALUES ('manual-active-assignment', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ''',
+        [ellaId, boxId],
+      ),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('database rejects log entries for closed assignments', () async {
+    final sellerId = await db.createSeller(name: 'Mae');
+    final boxId = await db.createBox(boxNumber: '01');
+    final assignmentId =
+        await db.createRentalAssignment(sellerId: sellerId, boxId: boxId);
+
+    await db.reassignBox(
+      boxId: boxId,
+      nextSellerId: await db.createSeller(name: 'Ella'),
+    );
+
+    expect(
+      () => db.customStatement(
+        '''
+        INSERT INTO log_entries (
+          id,
+          rental_assignment_id,
+          item_name,
+          price,
+          claimer_name,
+          timestamp
+        )
+        VALUES ('manual-log-entry', ?, 'Dress', 200, 'Cashier A', CURRENT_TIMESTAMP)
+        ''',
+        [assignmentId],
+      ),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('box numbers are unique at the schema level', () async {
+    await db.createBox(boxNumber: '01');
+
+    expect(
+      () => db.createBox(boxNumber: '01'),
+      throwsA(isA<Exception>()),
+    );
+  });
 }

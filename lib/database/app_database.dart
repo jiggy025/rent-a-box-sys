@@ -32,6 +32,11 @@ class Boxes extends Table {
 
   @override
   Set<Column<Object>>? get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+        {boxNumber},
+      ];
 }
 
 class RentalAssignments extends Table {
@@ -67,6 +72,37 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+          await customStatement(
+            '''
+            CREATE UNIQUE INDEX rental_assignments_active_box_unique_idx
+            ON rental_assignments (box_id)
+            WHERE ended_at IS NULL
+            ''',
+          );
+          await customStatement(
+            '''
+            CREATE TRIGGER log_entries_active_assignment_only
+            BEFORE INSERT ON log_entries
+            FOR EACH ROW
+            BEGIN
+              SELECT CASE
+                WHEN (
+                  SELECT ended_at
+                  FROM rental_assignments
+                  WHERE id = NEW.rental_assignment_id
+                ) IS NOT NULL
+                THEN RAISE(ABORT, 'Cannot add log entry to a closed assignment.')
+              END;
+            END;
+            ''',
+          );
+        },
+      );
 
   Future<String> createSeller({
     required String name,
@@ -115,6 +151,14 @@ class AppDatabase extends _$AppDatabase {
     required double price,
     required String claimerName,
   }) async {
+    final assignment = await assignmentById(rentalAssignmentId);
+    if (assignment == null) {
+      throw StateError('Rental assignment does not exist.');
+    }
+    if (assignment.endedAt != null) {
+      throw StateError('Cannot add log entry to a closed assignment.');
+    }
+
     await into(logEntries).insert(
       LogEntriesCompanion.insert(
         rentalAssignmentId: rentalAssignmentId,

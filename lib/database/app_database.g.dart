@@ -539,6 +539,10 @@ class $BoxesTable extends Boxes with TableInfo<$BoxesTable, Boxe> {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {boxNumber},
+  ];
+  @override
   Boxe map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Boxe(
