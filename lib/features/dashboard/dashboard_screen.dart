@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../boxes/box_detail_screen.dart';
 import '../../providers/dashboard_providers.dart';
 import 'widgets/add_box_sheet.dart';
 import 'widgets/add_seller_sheet.dart';
@@ -75,7 +76,13 @@ class DashboardScreen extends ConsumerWidget {
                     final summary = rows[index];
                     return BoxCard(
                       summary: summary,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => BoxDetailScreen(boxId: summary.boxId),
+                          ),
+                        );
+                      },
                       onSellerTap: () {},
                     );
                   },

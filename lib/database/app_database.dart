@@ -305,6 +305,22 @@ class AppDatabase extends _$AppDatabase {
         );
   }
 
+  Stream<List<LogEntry>> watchEntriesForAssignment(String assignmentId) {
+    return (select(logEntries)
+          ..where((tbl) => tbl.rentalAssignmentId.equals(assignmentId))
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.timestamp)]))
+        .watch();
+  }
+
+  Stream<double> watchAssignmentTotal(String assignmentId) {
+    final totalExpression = logEntries.price.sum();
+    final query = selectOnly(logEntries)
+      ..addColumns([totalExpression])
+      ..where(logEntries.rentalAssignmentId.equals(assignmentId));
+
+    return query.watchSingle().map((row) => row.read(totalExpression) ?? 0);
+  }
+
   Future<List<SellerHistoryRecord>> sellerHistory(String sellerId) async {
     final rows = await customSelect(
       '''
