@@ -475,7 +475,14 @@ class AppDatabase extends _$AppDatabase {
             FROM seller_adjustments AS sa
           ),
           0
-        ) AS seller_adjustment_count
+        ) AS seller_adjustment_count,
+        CASE
+          WHEN EXISTS (
+            SELECT 1
+            FROM rental_assignments AS ra
+          ) THEN 1
+          ELSE 0
+        END AS has_completed_initial_setup
       ''',
       readsFrom: {
         sellers,
@@ -491,6 +498,8 @@ class AppDatabase extends _$AppDatabase {
         activeAssignmentCount: row.read<int>('active_assignment_count'),
         logEntryCount: row.read<int>('log_entry_count'),
         sellerAdjustmentCount: row.read<int>('seller_adjustment_count'),
+        hasCompletedInitialSetup:
+            row.read<int>('has_completed_initial_setup') == 1,
       ),
     );
   }

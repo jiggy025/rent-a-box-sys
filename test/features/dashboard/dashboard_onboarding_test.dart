@@ -14,6 +14,13 @@ import 'package:rent_a_box_sys/providers/database_provider.dart';
 
 import '../../helpers/test_app.dart';
 
+Future<void> disposeTestApp(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+  await tester.idle();
+  await tester.pump();
+}
+
 void expectGuideState(
   DashboardGuideState state, {
   required int sellers,
@@ -102,6 +109,8 @@ void main() {
     final image = tester.widget<Image>(find.byType(Image).first);
     final provider = image.image as AssetImage;
     expect(provider.assetName, 'assets/branding/espasyo.png');
+
+    await disposeTestApp(tester);
   });
 
   testWidgets('shows the compact refresher card once setup is complete', (
@@ -133,7 +142,42 @@ void main() {
     expect(find.text('Dashboard setup complete'), findsOneWidget);
     expect(find.text('Get your dashboard ready'), findsNothing);
     expect(find.text('1. Add seller'), findsNothing);
+
+    await disposeTestApp(tester);
   });
+
+  testWidgets(
+    'keeps the compact refresher after setup was previously completed',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      final sellerId = await db.createSeller(name: 'Mae');
+      final boxId = await db.createBox(boxNumber: '01');
+      await db.createRentalAssignment(sellerId: sellerId, boxId: boxId);
+
+      await tester.pumpWidget(
+        wrapWithTestApp(
+          const DashboardScreen(),
+          overrides: [databaseProvider.overrideWithValue(db)],
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Need a quick refresher?'), findsOneWidget);
+      expect(find.text('Get your dashboard ready'), findsNothing);
+
+      await db.markSellerInactive(sellerId);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Need a quick refresher?'), findsOneWidget);
+      expect(find.text('Dashboard setup complete'), findsOneWidget);
+      expect(find.text('Get your dashboard ready'), findsNothing);
+
+      await disposeTestApp(tester);
+    },
+  );
 
   test('dashboard guide state reacts to database counts', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
