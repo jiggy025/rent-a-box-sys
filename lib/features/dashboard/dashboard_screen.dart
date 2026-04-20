@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../boxes/box_detail_screen.dart';
+import '../sellers/sellers_screen.dart';
+import '../sellers/seller_detail_screen.dart';
 import '../../providers/dashboard_providers.dart';
 import 'widgets/add_box_sheet.dart';
 import 'widgets/add_seller_sheet.dart';
@@ -25,7 +27,20 @@ class DashboardScreen extends ConsumerWidget {
     final dashboardBoxes = ref.watch(filteredDashboardBoxesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SellersScreen()),
+              );
+            },
+            icon: const Icon(Icons.people_alt_outlined),
+            tooltip: 'Sellers',
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _openSheet(
@@ -83,7 +98,18 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         );
                       },
-                      onSellerTap: () {},
+                      onSellerTap: () {
+                        final sellerId = summary.sellerId;
+                        if (sellerId == null) {
+                          return;
+                        }
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                SellerDetailScreen(sellerId: sellerId),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

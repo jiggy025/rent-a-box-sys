@@ -12,4 +12,8 @@ final activeAssignmentCountProvider = StreamProvider<int>((ref) {
   return ref.watch(databaseProvider).watchActiveAssignmentCount();
 });
 
+final hasAnyLedgerDataProvider = StreamProvider<bool>((ref) {
+  return ref.watch(databaseProvider).watchHasAnyLedgerData();
+});
+
 final refreshTickProvider = StateProvider<int>((ref) => 0);

@@ -7,7 +7,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/dashboard_box_summary.dart';
+import '../models/seller_active_box_record.dart';
+import '../models/seller_adjustment_type.dart';
 import '../models/seller_history_record.dart';
+import '../models/seller_ledger_summary.dart';
+import '../models/seller_transaction_record.dart';
 
 part 'app_database.g.dart';
 
@@ -16,6 +20,7 @@ class Sellers extends Table {
   TextColumn get name => text().withLength(min: 1, max: 80)();
   TextColumn get contactInfo => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get inactiveAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -64,19 +69,40 @@ class LogEntries extends Table {
   Set<Column<Object>>? get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Sellers, Boxes, RentalAssignments, LogEntries])
+class SellerAdjustments extends Table {
+  TextColumn get id => text().clientDefault(() => const Uuid().v4())();
+  TextColumn get sellerId => text().references(Sellers, #id)();
+  TextColumn get type => text().withLength(min: 1, max: 40)();
+  RealColumn get amount => real()();
+  TextColumn get reason => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>>? get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [Sellers, Boxes, RentalAssignments, LogEntries, SellerAdjustments],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await _ensureSchemaProtections();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(sellers, sellers.inactiveAt);
+        await m.createTable(sellerAdjustments);
+      }
       await _ensureSchemaProtections();
     },
     beforeOpen: (details) async {
@@ -119,6 +145,7 @@ class AppDatabase extends _$AppDatabase {
       throw StateError('Box already has an active assignment.');
     }
 
+    await _reactivateSeller(sellerId);
     final row = await into(rentalAssignments).insertReturning(
       RentalAssignmentsCompanion.insert(sellerId: sellerId, boxId: boxId),
     );
@@ -166,6 +193,67 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  Future<String> createSellerAdjustment({
+    required String sellerId,
+    required SellerAdjustmentType type,
+    required double amount,
+    String? reason,
+  }) async {
+    if (amount <= 0) {
+      throw ArgumentError.value(
+        amount,
+        'amount',
+        'Adjustment amount must be greater than zero.',
+      );
+    }
+
+    final normalizedReason = reason?.trim();
+    if (type == SellerAdjustmentType.manualDeduction &&
+        (normalizedReason == null || normalizedReason.isEmpty)) {
+      throw StateError('Manual deductions require a reason.');
+    }
+
+    final summary = await sellerLedgerSummary(sellerId);
+    if (summary == null) {
+      throw StateError('Seller does not exist.');
+    }
+    if (amount > summary.availableBalance) {
+      throw StateError('Amount exceeds the seller available balance.');
+    }
+
+    final row = await into(sellerAdjustments).insertReturning(
+      SellerAdjustmentsCompanion.insert(
+        sellerId: sellerId,
+        type: type.databaseValue,
+        amount: amount,
+        reason: Value(
+          normalizedReason == null || normalizedReason.isEmpty
+              ? null
+              : normalizedReason,
+        ),
+      ),
+    );
+
+    return row.id;
+  }
+
+  Future<void> markSellerInactive(String sellerId) async {
+    final now = DateTime.now();
+    await transaction(() async {
+      await (update(sellers)..where((tbl) => tbl.id.equals(sellerId))).write(
+        SellersCompanion(
+          isActive: const Value(false),
+          inactiveAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+      await (update(
+        rentalAssignments,
+      )..where((tbl) => tbl.sellerId.equals(sellerId) & tbl.endedAt.isNull()))
+          .write(RentalAssignmentsCompanion(endedAt: Value(now)));
+    });
+  }
+
   Future<int> activeAssignmentCount() async {
     final countExpression = rentalAssignments.id.count();
     final query = selectOnly(rentalAssignments)
@@ -184,6 +272,34 @@ class AppDatabase extends _$AppDatabase {
     return query.watchSingle().map((row) => row.read(countExpression) ?? 0);
   }
 
+  Future<bool> hasAnyLedgerData() async {
+    final row = await customSelect(
+      '''
+      SELECT CASE
+        WHEN EXISTS (SELECT 1 FROM sellers)
+          OR EXISTS (SELECT 1 FROM boxes)
+        THEN 1 ELSE 0
+      END AS has_data
+      ''',
+      readsFrom: {sellers, boxes},
+    ).getSingle();
+
+    return row.read<int>('has_data') == 1;
+  }
+
+  Stream<bool> watchHasAnyLedgerData() {
+    return customSelect(
+      '''
+      SELECT CASE
+        WHEN EXISTS (SELECT 1 FROM sellers)
+          OR EXISTS (SELECT 1 FROM boxes)
+        THEN 1 ELSE 0
+      END AS has_data
+      ''',
+      readsFrom: {sellers, boxes},
+    ).watchSingle().map((row) => row.read<int>('has_data') == 1);
+  }
+
   Future<List<RentalAssignment>> activeAssignmentsForSeller(String sellerId) {
     return (select(
           rentalAssignments,
@@ -195,6 +311,14 @@ class AppDatabase extends _$AppDatabase {
     return (select(sellers)
           ..where((tbl) => tbl.isActive.equals(true))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+        .watch();
+  }
+
+  Stream<List<Seller>> watchAllSellers() {
+    return (select(sellers)..orderBy([
+          (tbl) => OrderingTerm.desc(tbl.isActive),
+          (tbl) => OrderingTerm.asc(tbl.name),
+        ]))
         .watch();
   }
 
@@ -325,6 +449,90 @@ class AppDatabase extends _$AppDatabase {
     return query.watchSingle().map((row) => row.read(totalExpression) ?? 0);
   }
 
+  Future<SellerLedgerSummary?> sellerLedgerSummary(String sellerId) async {
+    final rows = await _sellerLedgerSummarySelect(
+      sellerId: sellerId,
+    ).get();
+    if (rows.isEmpty) {
+      return null;
+    }
+    return _mapSellerLedgerSummary(rows.single);
+  }
+
+  Stream<SellerLedgerSummary?> watchSellerLedgerSummary(String sellerId) {
+    return _sellerLedgerSummarySelect(
+      sellerId: sellerId,
+    ).watchSingleOrNull().map((row) {
+      if (row == null) {
+        return null;
+      }
+      return _mapSellerLedgerSummary(row);
+    });
+  }
+
+  Future<List<SellerLedgerSummary>> sellerLedgerSummaries() async {
+    final rows = await _sellerLedgerSummarySelect().get();
+    return rows.map(_mapSellerLedgerSummary).toList(growable: false);
+  }
+
+  Stream<List<SellerLedgerSummary>> watchSellerLedgerSummaries() {
+    return _sellerLedgerSummarySelect()
+        .watch()
+        .map((rows) => rows.map(_mapSellerLedgerSummary).toList(growable: false));
+  }
+
+  Stream<List<SellerActiveBoxRecord>> watchActiveBoxesForSeller(String sellerId) {
+    return customSelect(
+      '''
+      SELECT
+        b.id AS box_id,
+        b.box_number,
+        ra.id AS assignment_id,
+        COALESCE(SUM(le.price), 0) AS total
+      FROM rental_assignments AS ra
+      INNER JOIN boxes AS b
+        ON b.id = ra.box_id
+      LEFT JOIN log_entries AS le
+        ON le.rental_assignment_id = ra.id
+      WHERE ra.seller_id = ?
+        AND ra.ended_at IS NULL
+      GROUP BY b.id, b.box_number, ra.id
+      ORDER BY b.box_number ASC
+      ''',
+      variables: [Variable<String>(sellerId)],
+      readsFrom: {rentalAssignments, boxes, logEntries},
+    ).watch().map(
+      (rows) => rows
+          .map(
+            (row) => SellerActiveBoxRecord(
+              boxId: row.read<String>('box_id'),
+              assignmentId: row.read<String>('assignment_id'),
+              boxNumber: row.read<String>('box_number'),
+              total: row.read<double>('total'),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Future<List<SellerTransactionRecord>> sellerTransactionHistory(
+    String sellerId,
+  ) async {
+    final rows = await _sellerTransactionHistorySelect(sellerId).get();
+    return rows.map(_mapSellerTransactionRecord).toList(growable: false);
+  }
+
+  Stream<List<SellerTransactionRecord>> watchSellerTransactionHistory(
+    String sellerId,
+  ) {
+    return _sellerTransactionHistorySelect(sellerId)
+        .watch()
+        .map(
+          (rows) =>
+              rows.map(_mapSellerTransactionRecord).toList(growable: false),
+        );
+  }
+
   Future<List<SellerHistoryRecord>> sellerHistory(String sellerId) async {
     final rows = await customSelect(
       '''
@@ -360,6 +568,145 @@ class AppDatabase extends _$AppDatabase {
           ),
         )
         .toList(growable: false);
+  }
+
+  Selectable<QueryRow> _sellerLedgerSummarySelect({String? sellerId}) {
+    final variables = <Variable<Object>>[];
+    final whereClause = sellerId == null ? '' : 'WHERE s.id = ?';
+    if (sellerId != null) {
+      variables.add(Variable<String>(sellerId));
+    }
+
+    return customSelect(
+      '''
+      SELECT
+        s.id AS seller_id,
+        s.name AS seller_name,
+        s.is_active,
+        s.inactive_at,
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM rental_assignments AS ra
+            WHERE ra.seller_id = s.id
+              AND ra.ended_at IS NULL
+          ),
+          0
+        ) AS active_boxes_count,
+        COALESCE(
+          (
+            SELECT SUM(le.price)
+            FROM rental_assignments AS ra
+            LEFT JOIN log_entries AS le
+              ON le.rental_assignment_id = ra.id
+            WHERE ra.seller_id = s.id
+              AND ra.ended_at IS NULL
+          ),
+          0
+        ) AS active_boxes_total,
+        COALESCE(
+          (
+            SELECT SUM(le.price)
+            FROM rental_assignments AS ra
+            LEFT JOIN log_entries AS le
+              ON le.rental_assignment_id = ra.id
+            WHERE ra.seller_id = s.id
+          ),
+          0
+        ) AS lifetime_sales,
+        COALESCE(
+          (
+            SELECT SUM(sa.amount)
+            FROM seller_adjustments AS sa
+            WHERE sa.seller_id = s.id
+          ),
+          0
+        ) AS total_adjustments
+      FROM sellers AS s
+      $whereClause
+      ORDER BY s.is_active DESC, s.name ASC
+      ''',
+      variables: variables,
+      readsFrom: {sellers, rentalAssignments, logEntries, sellerAdjustments},
+    );
+  }
+
+  SellerLedgerSummary _mapSellerLedgerSummary(QueryRow row) {
+    final lifetimeSales = row.read<double>('lifetime_sales');
+    final totalAdjustments = row.read<double>('total_adjustments');
+
+    return SellerLedgerSummary(
+      sellerId: row.read<String>('seller_id'),
+      sellerName: row.read<String>('seller_name'),
+      isActive: row.read<bool>('is_active'),
+      inactiveAt: row.read<DateTime?>('inactive_at'),
+      activeBoxesCount: row.read<int>('active_boxes_count'),
+      activeBoxesTotal: row.read<double>('active_boxes_total'),
+      lifetimeSales: lifetimeSales,
+      availableBalance: lifetimeSales - totalAdjustments,
+    );
+  }
+
+  Selectable<QueryRow> _sellerTransactionHistorySelect(String sellerId) {
+    return customSelect(
+      '''
+      SELECT
+        le.id AS transaction_id,
+        'sale' AS kind,
+        le.item_name AS title,
+        le.claimer_name AS detail,
+        b.box_number,
+        le.price AS amount,
+        le.timestamp AS created_at
+      FROM log_entries AS le
+      INNER JOIN rental_assignments AS ra
+        ON ra.id = le.rental_assignment_id
+      INNER JOIN boxes AS b
+        ON b.id = ra.box_id
+      WHERE ra.seller_id = ?
+
+      UNION ALL
+
+      SELECT
+        sa.id AS transaction_id,
+        sa.type AS kind,
+        CASE
+          WHEN sa.type = 'cashOut' THEN 'Cash Out'
+          ELSE 'Manual Deduction'
+        END AS title,
+        sa.reason AS detail,
+        NULL AS box_number,
+        -sa.amount AS amount,
+        sa.created_at AS created_at
+      FROM seller_adjustments AS sa
+      WHERE sa.seller_id = ?
+      ORDER BY created_at DESC, transaction_id DESC
+      ''',
+      variables: [Variable<String>(sellerId), Variable<String>(sellerId)],
+      readsFrom: {logEntries, rentalAssignments, boxes, sellerAdjustments},
+    );
+  }
+
+  SellerTransactionRecord _mapSellerTransactionRecord(QueryRow row) {
+    return SellerTransactionRecord(
+      id: row.read<String>('transaction_id'),
+      kind: SellerTransactionKind.fromDatabaseValue(row.read<String>('kind')),
+      title: row.read<String>('title'),
+      detail: row.read<String?>('detail'),
+      boxNumber: row.read<String?>('box_number'),
+      amount: row.read<double>('amount'),
+      createdAt: row.read<DateTime>('created_at'),
+    );
+  }
+
+  Future<void> _reactivateSeller(String sellerId) async {
+    await (update(sellers)..where((tbl) => tbl.id.equals(sellerId))).write(
+      SellersCompanion(
+        isActive: const Value(true),
+        inactiveAt: const Value(null),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   Future<void> _ensureSchemaProtections() async {

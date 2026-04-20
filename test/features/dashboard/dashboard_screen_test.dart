@@ -12,6 +12,13 @@ import 'package:rent_a_box_sys/providers/seller_providers.dart';
 
 import '../../helpers/test_app.dart';
 
+Future<void> disposeTestApp(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+  await tester.idle();
+  await tester.pump();
+}
+
 void main() {
   testWidgets('renders occupied and vacant box cards and filters search', (
     tester,
@@ -54,6 +61,8 @@ void main() {
 
     expect(find.text('BOX 01'), findsNothing);
     expect(find.text('BOX 02'), findsOneWidget);
+
+    await disposeTestApp(tester);
   });
 
   testWidgets('reassigns a box and resets the current total', (tester) async {
@@ -82,7 +91,7 @@ void main() {
         overrides: [
           databaseProvider.overrideWithValue(db),
           dashboardBoxesProvider.overrideWith((ref) => controller.stream),
-          activeSellersProvider.overrideWith((ref) => Stream.value(sellers)),
+          allSellersProvider.overrideWith((ref) => Stream.value(sellers)),
         ],
       ),
     );
@@ -122,5 +131,7 @@ void main() {
 
     expect(find.text('Ella'), findsOneWidget);
     expect(find.textContaining('0.00'), findsOneWidget);
+
+    await disposeTestApp(tester);
   });
 }

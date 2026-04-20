@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -18,15 +19,22 @@ class BoxDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _itemController = TextEditingController();
   final _priceController = TextEditingController();
   final _claimerController = TextEditingController();
+  final _itemFocusNode = FocusNode();
+  final _priceFocusNode = FocusNode();
+  final _claimerFocusNode = FocusNode();
 
   @override
   void dispose() {
     _itemController.dispose();
     _priceController.dispose();
     _claimerController.dispose();
+    _itemFocusNode.dispose();
+    _priceFocusNode.dispose();
+    _claimerFocusNode.dispose();
     super.dispose();
   }
 
@@ -37,6 +45,10 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
       }
     }
     return null;
+  }
+
+  String _normalizedSingleLine(String value) {
+    return value.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   void _openOccupySheet(DashboardBoxSummary? summary) {
@@ -54,19 +66,24 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
   }
 
   Future<void> _submit(String assignmentId) async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     await ref
         .read(databaseProvider)
         .addLogEntry(
           rentalAssignmentId: assignmentId,
-          itemName: _itemController.text.trim(),
+          itemName: _normalizedSingleLine(_itemController.text),
           price: double.parse(_priceController.text.trim()),
-          claimerName: _claimerController.text.trim(),
+          claimerName: _normalizedSingleLine(_claimerController.text),
         );
 
     _itemController.clear();
     _priceController.clear();
     _claimerController.clear();
     ref.read(refreshTickProvider.notifier).state++;
+    _itemFocusNode.requestFocus();
   }
 
   @override
@@ -153,23 +170,83 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
                   error: (error, stack) => Text(error.toString()),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  key: const Key('item-name'),
-                  controller: _itemController,
-                  decoration: const InputDecoration(labelText: 'Item name'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  key: const Key('item-price'),
-                  controller: _priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Price'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  key: const Key('claimer-name'),
-                  controller: _claimerController,
-                  decoration: const InputDecoration(labelText: 'Claimer name'),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        key: const Key('item-name'),
+                        controller: _itemController,
+                        focusNode: _itemFocusNode,
+                        maxLines: 1,
+                        textInputAction: TextInputAction.next,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.deny(RegExp(r'[\r\n]')),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Item name',
+                        ),
+                        onFieldSubmitted: (_) {
+                          _priceFocusNode.requestFocus();
+                        },
+                        validator: (value) {
+                          if (_normalizedSingleLine(value ?? '').isEmpty) {
+                            return 'Enter an item name.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        key: const Key('item-price'),
+                        controller: _priceController,
+                        focusNode: _priceFocusNode,
+                        maxLines: 1,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                        decoration: const InputDecoration(labelText: 'Price'),
+                        onFieldSubmitted: (_) {
+                          _claimerFocusNode.requestFocus();
+                        },
+                        validator: (value) {
+                          final input = value?.trim() ?? '';
+                          if (input.isEmpty) {
+                            return 'Enter a price.';
+                          }
+                          if (double.tryParse(input) == null) {
+                            return 'Enter numbers only.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        key: const Key('claimer-name'),
+                        controller: _claimerController,
+                        focusNode: _claimerFocusNode,
+                        maxLines: 1,
+                        textInputAction: TextInputAction.done,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.deny(RegExp(r'[\r\n]')),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Claimer name',
+                        ),
+                        onFieldSubmitted: (_) => _submit(assignment.id),
+                        validator: (value) {
+                          if (_normalizedSingleLine(value ?? '').isEmpty) {
+                            return 'Enter a claimer name.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
@@ -184,8 +261,16 @@ class _BoxDetailScreenState extends ConsumerState<BoxDetailScreen> {
                       itemBuilder: (context, index) {
                         final entry = entries[index];
                         return ListTile(
-                          title: Text(entry.itemName),
-                          subtitle: Text(entry.claimerName),
+                          title: Text(
+                            entry.itemName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            entry.claimerName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           trailing: Text(currency.format(entry.price)),
                         );
                       },

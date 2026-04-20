@@ -57,6 +57,17 @@ class $SellersTable extends Sellers with TableInfo<$SellersTable, Seller> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _inactiveAtMeta = const VerificationMeta(
+    'inactiveAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> inactiveAt = GeneratedColumn<DateTime>(
+    'inactive_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -87,6 +98,7 @@ class $SellersTable extends Sellers with TableInfo<$SellersTable, Seller> {
     name,
     contactInfo,
     isActive,
+    inactiveAt,
     createdAt,
     updatedAt,
   ];
@@ -128,6 +140,12 @@ class $SellersTable extends Sellers with TableInfo<$SellersTable, Seller> {
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('inactive_at')) {
+      context.handle(
+        _inactiveAtMeta,
+        inactiveAt.isAcceptableOrUnknown(data['inactive_at']!, _inactiveAtMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -165,6 +183,10 @@ class $SellersTable extends Sellers with TableInfo<$SellersTable, Seller> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      inactiveAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}inactive_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -187,6 +209,7 @@ class Seller extends DataClass implements Insertable<Seller> {
   final String name;
   final String? contactInfo;
   final bool isActive;
+  final DateTime? inactiveAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Seller({
@@ -194,6 +217,7 @@ class Seller extends DataClass implements Insertable<Seller> {
     required this.name,
     this.contactInfo,
     required this.isActive,
+    this.inactiveAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -206,6 +230,9 @@ class Seller extends DataClass implements Insertable<Seller> {
       map['contact_info'] = Variable<String>(contactInfo);
     }
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || inactiveAt != null) {
+      map['inactive_at'] = Variable<DateTime>(inactiveAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -219,6 +246,9 @@ class Seller extends DataClass implements Insertable<Seller> {
           ? const Value.absent()
           : Value(contactInfo),
       isActive: Value(isActive),
+      inactiveAt: inactiveAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inactiveAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -234,6 +264,7 @@ class Seller extends DataClass implements Insertable<Seller> {
       name: serializer.fromJson<String>(json['name']),
       contactInfo: serializer.fromJson<String?>(json['contactInfo']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      inactiveAt: serializer.fromJson<DateTime?>(json['inactiveAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -246,6 +277,7 @@ class Seller extends DataClass implements Insertable<Seller> {
       'name': serializer.toJson<String>(name),
       'contactInfo': serializer.toJson<String?>(contactInfo),
       'isActive': serializer.toJson<bool>(isActive),
+      'inactiveAt': serializer.toJson<DateTime?>(inactiveAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -256,6 +288,7 @@ class Seller extends DataClass implements Insertable<Seller> {
     String? name,
     Value<String?> contactInfo = const Value.absent(),
     bool? isActive,
+    Value<DateTime?> inactiveAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Seller(
@@ -263,6 +296,7 @@ class Seller extends DataClass implements Insertable<Seller> {
     name: name ?? this.name,
     contactInfo: contactInfo.present ? contactInfo.value : this.contactInfo,
     isActive: isActive ?? this.isActive,
+    inactiveAt: inactiveAt.present ? inactiveAt.value : this.inactiveAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -274,6 +308,9 @@ class Seller extends DataClass implements Insertable<Seller> {
           ? data.contactInfo.value
           : this.contactInfo,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      inactiveAt: data.inactiveAt.present
+          ? data.inactiveAt.value
+          : this.inactiveAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -286,6 +323,7 @@ class Seller extends DataClass implements Insertable<Seller> {
           ..write('name: $name, ')
           ..write('contactInfo: $contactInfo, ')
           ..write('isActive: $isActive, ')
+          ..write('inactiveAt: $inactiveAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -293,8 +331,15 @@ class Seller extends DataClass implements Insertable<Seller> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, contactInfo, isActive, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    contactInfo,
+    isActive,
+    inactiveAt,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -303,6 +348,7 @@ class Seller extends DataClass implements Insertable<Seller> {
           other.name == this.name &&
           other.contactInfo == this.contactInfo &&
           other.isActive == this.isActive &&
+          other.inactiveAt == this.inactiveAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -312,6 +358,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
   final Value<String> name;
   final Value<String?> contactInfo;
   final Value<bool> isActive;
+  final Value<DateTime?> inactiveAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -320,6 +367,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
     this.name = const Value.absent(),
     this.contactInfo = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.inactiveAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -329,6 +377,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
     required String name,
     this.contactInfo = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.inactiveAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -338,6 +387,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
     Expression<String>? name,
     Expression<String>? contactInfo,
     Expression<bool>? isActive,
+    Expression<DateTime>? inactiveAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -347,6 +397,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
       if (name != null) 'name': name,
       if (contactInfo != null) 'contact_info': contactInfo,
       if (isActive != null) 'is_active': isActive,
+      if (inactiveAt != null) 'inactive_at': inactiveAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -358,6 +409,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
     Value<String>? name,
     Value<String?>? contactInfo,
     Value<bool>? isActive,
+    Value<DateTime?>? inactiveAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -367,6 +419,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
       name: name ?? this.name,
       contactInfo: contactInfo ?? this.contactInfo,
       isActive: isActive ?? this.isActive,
+      inactiveAt: inactiveAt ?? this.inactiveAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -388,6 +441,9 @@ class SellersCompanion extends UpdateCompanion<Seller> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (inactiveAt.present) {
+      map['inactive_at'] = Variable<DateTime>(inactiveAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -407,6 +463,7 @@ class SellersCompanion extends UpdateCompanion<Seller> {
           ..write('name: $name, ')
           ..write('contactInfo: $contactInfo, ')
           ..write('isActive: $isActive, ')
+          ..write('inactiveAt: $inactiveAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -1624,6 +1681,415 @@ class LogEntriesCompanion extends UpdateCompanion<LogEntry> {
   }
 }
 
+class $SellerAdjustmentsTable extends SellerAdjustments
+    with TableInfo<$SellerAdjustmentsTable, SellerAdjustment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SellerAdjustmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _sellerIdMeta = const VerificationMeta(
+    'sellerId',
+  );
+  @override
+  late final GeneratedColumn<String> sellerId = GeneratedColumn<String>(
+    'seller_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES sellers (id)',
+    ),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 40,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sellerId,
+    type,
+    amount,
+    reason,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'seller_adjustments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SellerAdjustment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('seller_id')) {
+      context.handle(
+        _sellerIdMeta,
+        sellerId.isAcceptableOrUnknown(data['seller_id']!, _sellerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sellerIdMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SellerAdjustment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SellerAdjustment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sellerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}seller_id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SellerAdjustmentsTable createAlias(String alias) {
+    return $SellerAdjustmentsTable(attachedDatabase, alias);
+  }
+}
+
+class SellerAdjustment extends DataClass
+    implements Insertable<SellerAdjustment> {
+  final String id;
+  final String sellerId;
+  final String type;
+  final double amount;
+  final String? reason;
+  final DateTime createdAt;
+  const SellerAdjustment({
+    required this.id,
+    required this.sellerId,
+    required this.type,
+    required this.amount,
+    this.reason,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['seller_id'] = Variable<String>(sellerId);
+    map['type'] = Variable<String>(type);
+    map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  SellerAdjustmentsCompanion toCompanion(bool nullToAbsent) {
+    return SellerAdjustmentsCompanion(
+      id: Value(id),
+      sellerId: Value(sellerId),
+      type: Value(type),
+      amount: Value(amount),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory SellerAdjustment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SellerAdjustment(
+      id: serializer.fromJson<String>(json['id']),
+      sellerId: serializer.fromJson<String>(json['sellerId']),
+      type: serializer.fromJson<String>(json['type']),
+      amount: serializer.fromJson<double>(json['amount']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sellerId': serializer.toJson<String>(sellerId),
+      'type': serializer.toJson<String>(type),
+      'amount': serializer.toJson<double>(amount),
+      'reason': serializer.toJson<String?>(reason),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  SellerAdjustment copyWith({
+    String? id,
+    String? sellerId,
+    String? type,
+    double? amount,
+    Value<String?> reason = const Value.absent(),
+    DateTime? createdAt,
+  }) => SellerAdjustment(
+    id: id ?? this.id,
+    sellerId: sellerId ?? this.sellerId,
+    type: type ?? this.type,
+    amount: amount ?? this.amount,
+    reason: reason.present ? reason.value : this.reason,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  SellerAdjustment copyWithCompanion(SellerAdjustmentsCompanion data) {
+    return SellerAdjustment(
+      id: data.id.present ? data.id.value : this.id,
+      sellerId: data.sellerId.present ? data.sellerId.value : this.sellerId,
+      type: data.type.present ? data.type.value : this.type,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SellerAdjustment(')
+          ..write('id: $id, ')
+          ..write('sellerId: $sellerId, ')
+          ..write('type: $type, ')
+          ..write('amount: $amount, ')
+          ..write('reason: $reason, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, sellerId, type, amount, reason, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SellerAdjustment &&
+          other.id == this.id &&
+          other.sellerId == this.sellerId &&
+          other.type == this.type &&
+          other.amount == this.amount &&
+          other.reason == this.reason &&
+          other.createdAt == this.createdAt);
+}
+
+class SellerAdjustmentsCompanion extends UpdateCompanion<SellerAdjustment> {
+  final Value<String> id;
+  final Value<String> sellerId;
+  final Value<String> type;
+  final Value<double> amount;
+  final Value<String?> reason;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const SellerAdjustmentsCompanion({
+    this.id = const Value.absent(),
+    this.sellerId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SellerAdjustmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String sellerId,
+    required String type,
+    required double amount,
+    this.reason = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : sellerId = Value(sellerId),
+       type = Value(type),
+       amount = Value(amount);
+  static Insertable<SellerAdjustment> custom({
+    Expression<String>? id,
+    Expression<String>? sellerId,
+    Expression<String>? type,
+    Expression<double>? amount,
+    Expression<String>? reason,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sellerId != null) 'seller_id': sellerId,
+      if (type != null) 'type': type,
+      if (amount != null) 'amount': amount,
+      if (reason != null) 'reason': reason,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SellerAdjustmentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sellerId,
+    Value<String>? type,
+    Value<double>? amount,
+    Value<String?>? reason,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return SellerAdjustmentsCompanion(
+      id: id ?? this.id,
+      sellerId: sellerId ?? this.sellerId,
+      type: type ?? this.type,
+      amount: amount ?? this.amount,
+      reason: reason ?? this.reason,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sellerId.present) {
+      map['seller_id'] = Variable<String>(sellerId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SellerAdjustmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('sellerId: $sellerId, ')
+          ..write('type: $type, ')
+          ..write('amount: $amount, ')
+          ..write('reason: $reason, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1632,6 +2098,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RentalAssignmentsTable rentalAssignments =
       $RentalAssignmentsTable(this);
   late final $LogEntriesTable logEntries = $LogEntriesTable(this);
+  late final $SellerAdjustmentsTable sellerAdjustments =
+      $SellerAdjustmentsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1641,6 +2109,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     boxes,
     rentalAssignments,
     logEntries,
+    sellerAdjustments,
   ];
 }
 
@@ -1650,6 +2119,7 @@ typedef $$SellersTableCreateCompanionBuilder =
       required String name,
       Value<String?> contactInfo,
       Value<bool> isActive,
+      Value<DateTime?> inactiveAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -1660,6 +2130,7 @@ typedef $$SellersTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> contactInfo,
       Value<bool> isActive,
+      Value<DateTime?> inactiveAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -1687,6 +2158,30 @@ final class $$SellersTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _rentalAssignmentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SellerAdjustmentsTable, List<SellerAdjustment>>
+  _sellerAdjustmentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.sellerAdjustments,
+        aliasName: $_aliasNameGenerator(
+          db.sellers.id,
+          db.sellerAdjustments.sellerId,
+        ),
+      );
+
+  $$SellerAdjustmentsTableProcessedTableManager get sellerAdjustmentsRefs {
+    final manager = $$SellerAdjustmentsTableTableManager(
+      $_db,
+      $_db.sellerAdjustments,
+    ).filter((f) => f.sellerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _sellerAdjustmentsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -1723,6 +2218,11 @@ class $$SellersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get inactiveAt => $composableBuilder(
+    column: $table.inactiveAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -1749,6 +2249,31 @@ class $$SellersTableFilterComposer
           }) => $$RentalAssignmentsTableFilterComposer(
             $db: $db,
             $table: $db.rentalAssignments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> sellerAdjustmentsRefs(
+    Expression<bool> Function($$SellerAdjustmentsTableFilterComposer f) f,
+  ) {
+    final $$SellerAdjustmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.sellerAdjustments,
+      getReferencedColumn: (t) => t.sellerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SellerAdjustmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.sellerAdjustments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1788,6 +2313,11 @@ class $$SellersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get inactiveAt => $composableBuilder(
+    column: $table.inactiveAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1822,6 +2352,11 @@ class $$SellersTableAnnotationComposer
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get inactiveAt => $composableBuilder(
+    column: $table.inactiveAt,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -1853,6 +2388,32 @@ class $$SellersTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> sellerAdjustmentsRefs<T extends Object>(
+    Expression<T> Function($$SellerAdjustmentsTableAnnotationComposer a) f,
+  ) {
+    final $$SellerAdjustmentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.sellerAdjustments,
+          getReferencedColumn: (t) => t.sellerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SellerAdjustmentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.sellerAdjustments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$SellersTableTableManager
@@ -1868,7 +2429,10 @@ class $$SellersTableTableManager
           $$SellersTableUpdateCompanionBuilder,
           (Seller, $$SellersTableReferences),
           Seller,
-          PrefetchHooks Function({bool rentalAssignmentsRefs})
+          PrefetchHooks Function({
+            bool rentalAssignmentsRefs,
+            bool sellerAdjustmentsRefs,
+          })
         > {
   $$SellersTableTableManager(_$AppDatabase db, $SellersTable table)
     : super(
@@ -1887,6 +2451,7 @@ class $$SellersTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> contactInfo = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<DateTime?> inactiveAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -1895,6 +2460,7 @@ class $$SellersTableTableManager
                 name: name,
                 contactInfo: contactInfo,
                 isActive: isActive,
+                inactiveAt: inactiveAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -1905,6 +2471,7 @@ class $$SellersTableTableManager
                 required String name,
                 Value<String?> contactInfo = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<DateTime?> inactiveAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -1913,6 +2480,7 @@ class $$SellersTableTableManager
                 name: name,
                 contactInfo: contactInfo,
                 isActive: isActive,
+                inactiveAt: inactiveAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -1925,37 +2493,63 @@ class $$SellersTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({rentalAssignmentsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (rentalAssignmentsRefs) db.rentalAssignments,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (rentalAssignmentsRefs)
-                    await $_getPrefetchedData<
-                      Seller,
-                      $SellersTable,
-                      RentalAssignment
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SellersTableReferences
-                          ._rentalAssignmentsRefsTable(db),
-                      managerFromTypedResult: (p0) => $$SellersTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).rentalAssignmentsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.sellerId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({rentalAssignmentsRefs = false, sellerAdjustmentsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (rentalAssignmentsRefs) db.rentalAssignments,
+                    if (sellerAdjustmentsRefs) db.sellerAdjustments,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (rentalAssignmentsRefs)
+                        await $_getPrefetchedData<
+                          Seller,
+                          $SellersTable,
+                          RentalAssignment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SellersTableReferences
+                              ._rentalAssignmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SellersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).rentalAssignmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sellerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (sellerAdjustmentsRefs)
+                        await $_getPrefetchedData<
+                          Seller,
+                          $SellersTable,
+                          SellerAdjustment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SellersTableReferences
+                              ._sellerAdjustmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SellersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).sellerAdjustmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sellerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -1972,7 +2566,10 @@ typedef $$SellersTableProcessedTableManager =
       $$SellersTableUpdateCompanionBuilder,
       (Seller, $$SellersTableReferences),
       Seller,
-      PrefetchHooks Function({bool rentalAssignmentsRefs})
+      PrefetchHooks Function({
+        bool rentalAssignmentsRefs,
+        bool sellerAdjustmentsRefs,
+      })
     >;
 typedef $$BoxesTableCreateCompanionBuilder =
     BoxesCompanion Function({
@@ -3164,6 +3761,360 @@ typedef $$LogEntriesTableProcessedTableManager =
       LogEntry,
       PrefetchHooks Function({bool rentalAssignmentId})
     >;
+typedef $$SellerAdjustmentsTableCreateCompanionBuilder =
+    SellerAdjustmentsCompanion Function({
+      Value<String> id,
+      required String sellerId,
+      required String type,
+      required double amount,
+      Value<String?> reason,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$SellerAdjustmentsTableUpdateCompanionBuilder =
+    SellerAdjustmentsCompanion Function({
+      Value<String> id,
+      Value<String> sellerId,
+      Value<String> type,
+      Value<double> amount,
+      Value<String?> reason,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$SellerAdjustmentsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $SellerAdjustmentsTable,
+          SellerAdjustment
+        > {
+  $$SellerAdjustmentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SellersTable _sellerIdTable(_$AppDatabase db) =>
+      db.sellers.createAlias(
+        $_aliasNameGenerator(db.sellerAdjustments.sellerId, db.sellers.id),
+      );
+
+  $$SellersTableProcessedTableManager get sellerId {
+    final $_column = $_itemColumn<String>('seller_id')!;
+
+    final manager = $$SellersTableTableManager(
+      $_db,
+      $_db.sellers,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sellerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SellerAdjustmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $SellerAdjustmentsTable> {
+  $$SellerAdjustmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SellersTableFilterComposer get sellerId {
+    final $$SellersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sellerId,
+      referencedTable: $db.sellers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SellersTableFilterComposer(
+            $db: $db,
+            $table: $db.sellers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SellerAdjustmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SellerAdjustmentsTable> {
+  $$SellerAdjustmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SellersTableOrderingComposer get sellerId {
+    final $$SellersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sellerId,
+      referencedTable: $db.sellers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SellersTableOrderingComposer(
+            $db: $db,
+            $table: $db.sellers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SellerAdjustmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SellerAdjustmentsTable> {
+  $$SellerAdjustmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$SellersTableAnnotationComposer get sellerId {
+    final $$SellersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sellerId,
+      referencedTable: $db.sellers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SellersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sellers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SellerAdjustmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SellerAdjustmentsTable,
+          SellerAdjustment,
+          $$SellerAdjustmentsTableFilterComposer,
+          $$SellerAdjustmentsTableOrderingComposer,
+          $$SellerAdjustmentsTableAnnotationComposer,
+          $$SellerAdjustmentsTableCreateCompanionBuilder,
+          $$SellerAdjustmentsTableUpdateCompanionBuilder,
+          (SellerAdjustment, $$SellerAdjustmentsTableReferences),
+          SellerAdjustment,
+          PrefetchHooks Function({bool sellerId})
+        > {
+  $$SellerAdjustmentsTableTableManager(
+    _$AppDatabase db,
+    $SellerAdjustmentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SellerAdjustmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SellerAdjustmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SellerAdjustmentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sellerId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SellerAdjustmentsCompanion(
+                id: id,
+                sellerId: sellerId,
+                type: type,
+                amount: amount,
+                reason: reason,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String sellerId,
+                required String type,
+                required double amount,
+                Value<String?> reason = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SellerAdjustmentsCompanion.insert(
+                id: id,
+                sellerId: sellerId,
+                type: type,
+                amount: amount,
+                reason: reason,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SellerAdjustmentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({sellerId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (sellerId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sellerId,
+                                referencedTable:
+                                    $$SellerAdjustmentsTableReferences
+                                        ._sellerIdTable(db),
+                                referencedColumn:
+                                    $$SellerAdjustmentsTableReferences
+                                        ._sellerIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SellerAdjustmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SellerAdjustmentsTable,
+      SellerAdjustment,
+      $$SellerAdjustmentsTableFilterComposer,
+      $$SellerAdjustmentsTableOrderingComposer,
+      $$SellerAdjustmentsTableAnnotationComposer,
+      $$SellerAdjustmentsTableCreateCompanionBuilder,
+      $$SellerAdjustmentsTableUpdateCompanionBuilder,
+      (SellerAdjustment, $$SellerAdjustmentsTableReferences),
+      SellerAdjustment,
+      PrefetchHooks Function({bool sellerId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3176,4 +4127,6 @@ class $AppDatabaseManager {
       $$RentalAssignmentsTableTableManager(_db, _db.rentalAssignments);
   $$LogEntriesTableTableManager get logEntries =>
       $$LogEntriesTableTableManager(_db, _db.logEntries);
+  $$SellerAdjustmentsTableTableManager get sellerAdjustments =>
+      $$SellerAdjustmentsTableTableManager(_db, _db.sellerAdjustments);
 }

@@ -10,11 +10,11 @@ class RootGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeCount = ref.watch(activeAssignmentCountProvider);
+    final hasAnyData = ref.watch(hasAnyLedgerDataProvider);
 
-    return activeCount.when(
-      data: (count) =>
-          count == 0 ? const SetupScreen() : const DashboardScreen(),
+    return hasAnyData.when(
+      data: (hasData) =>
+          hasData ? const DashboardScreen() : const SetupScreen(),
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stackTrace) =>

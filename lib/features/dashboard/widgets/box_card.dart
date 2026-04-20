@@ -69,12 +69,23 @@ class BoxCard extends StatelessWidget {
                   child: Text(
                     summary.sellerName ?? 'Vacant',
                     style: Theme.of(context).textTheme.bodyLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  currency.format(summary.total),
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      currency.format(summary.total),
+                      style: Theme.of(context).textTheme.headlineSmall,
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                  ),
                 ),
               ],
             ),

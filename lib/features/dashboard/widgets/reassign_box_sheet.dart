@@ -82,7 +82,12 @@ class _ReassignBoxSheetState extends ConsumerState<ReassignBoxSheet> {
       decoration: const InputDecoration(labelText: 'Seller'),
       items: [
         for (final seller in sellers)
-          DropdownMenuItem<String>(value: seller.id, child: Text(seller.name)),
+          DropdownMenuItem<String>(
+            value: seller.id,
+            child: Text(
+              seller.isActive ? seller.name : '${seller.name} (inactive)',
+            ),
+          ),
       ],
       onChanged: (value) {
         setState(() {
@@ -100,7 +105,7 @@ class _ReassignBoxSheetState extends ConsumerState<ReassignBoxSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final sellersAsync = ref.watch(activeSellersProvider);
+    final sellersAsync = ref.watch(allSellersProvider);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(

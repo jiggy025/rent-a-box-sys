@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:drift/native.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_a_box_sys/database/app_database.dart';
 import 'package:rent_a_box_sys/features/boxes/box_detail_screen.dart';
@@ -24,6 +24,20 @@ Future<void> pumpUntilFound(
       return;
     }
   }
+}
+
+Finder editableTextForKey(Key key) {
+  return find.descendant(
+    of: find.byKey(key),
+    matching: find.byType(EditableText),
+  );
+}
+
+Future<void> disposeTestApp(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+  await tester.idle();
+  await tester.pump();
 }
 
 void main() {
@@ -97,6 +111,152 @@ void main() {
 
     expect(find.text('Dress'), findsOneWidget);
     expect(find.textContaining('250.00'), findsWidgets);
+
+    await disposeTestApp(tester);
+  });
+
+  testWidgets('pressing enter on item name moves focus to price', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final sellerId = await db.createSeller(name: 'Mae');
+    final boxId = await db.createBox(boxNumber: '01');
+    final assignmentId = await db.createRentalAssignment(
+      sellerId: sellerId,
+      boxId: boxId,
+    );
+    final assignment = await db.activeAssignmentForBox(boxId);
+    final entriesController = StreamController<List<LogEntry>>.broadcast();
+    final totalController = StreamController<double>.broadcast();
+
+    addTearDown(() => tester.runAsync(db.close));
+    addTearDown(entriesController.close);
+    addTearDown(totalController.close);
+
+    await tester.pumpWidget(
+      wrapWithTestApp(
+        BoxDetailScreen(boxId: boxId),
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          activeAssignmentForBoxProvider(
+            boxId,
+          ).overrideWith((ref) => Future.value(assignment)),
+          assignmentEntriesProvider(
+            assignmentId,
+          ).overrideWith((ref) => entriesController.stream),
+          assignmentTotalProvider(
+            assignmentId,
+          ).overrideWith((ref) => totalController.stream),
+          dashboardBoxesProvider.overrideWith(
+            (ref) => Stream.value(const [
+              DashboardBoxSummary(
+                boxId: 'box-01',
+                boxNumber: '01',
+                assignmentId: 'assign-01',
+                sellerId: 'seller-01',
+                sellerName: 'Mae',
+                isVacant: false,
+                total: 0,
+              ),
+            ]),
+          ),
+        ],
+      ),
+    );
+
+    entriesController.add(const []);
+    totalController.add(0);
+    await pumpUntilFound(tester, find.text('Add Entry'));
+
+    await tester.tap(find.byKey(const Key('item-name')));
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<EditableText>(editableTextForKey(const Key('item-name')))
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
+
+    await tester.showKeyboard(find.byKey(const Key('item-name')));
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<EditableText>(editableTextForKey(const Key('item-price')))
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
+
+    await disposeTestApp(tester);
+  });
+
+  testWidgets('price field filters non-numeric characters', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final sellerId = await db.createSeller(name: 'Mae');
+    final boxId = await db.createBox(boxNumber: '01');
+    final assignmentId = await db.createRentalAssignment(
+      sellerId: sellerId,
+      boxId: boxId,
+    );
+    final assignment = await db.activeAssignmentForBox(boxId);
+    final entriesController = StreamController<List<LogEntry>>.broadcast();
+    final totalController = StreamController<double>.broadcast();
+
+    addTearDown(() => tester.runAsync(db.close));
+    addTearDown(entriesController.close);
+    addTearDown(totalController.close);
+
+    await tester.pumpWidget(
+      wrapWithTestApp(
+        BoxDetailScreen(boxId: boxId),
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          activeAssignmentForBoxProvider(
+            boxId,
+          ).overrideWith((ref) => Future.value(assignment)),
+          assignmentEntriesProvider(
+            assignmentId,
+          ).overrideWith((ref) => entriesController.stream),
+          assignmentTotalProvider(
+            assignmentId,
+          ).overrideWith((ref) => totalController.stream),
+          dashboardBoxesProvider.overrideWith(
+            (ref) => Stream.value(const [
+              DashboardBoxSummary(
+                boxId: 'box-01',
+                boxNumber: '01',
+                assignmentId: 'assign-01',
+                sellerId: 'seller-01',
+                sellerName: 'Mae',
+                isVacant: false,
+                total: 0,
+              ),
+            ]),
+          ),
+        ],
+      ),
+    );
+
+    entriesController.add(const []);
+    totalController.add(0);
+    await pumpUntilFound(tester, find.text('Add Entry'));
+
+    await tester.enterText(find.byKey(const Key('item-price')), '12a.3b');
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<EditableText>(editableTextForKey(const Key('item-price')))
+          .controller
+          .text,
+      '12.3',
+    );
+
+    await disposeTestApp(tester);
   });
 
   testWidgets('occupies a vacant box from the detail screen', (tester) async {
@@ -115,7 +275,7 @@ void main() {
         BoxDetailScreen(boxId: boxId),
         overrides: [
           databaseProvider.overrideWithValue(db),
-          activeSellersProvider.overrideWith((ref) => Stream.value(sellers)),
+          allSellersProvider.overrideWith((ref) => Stream.value(sellers)),
           assignmentEntriesProvider.overrideWith(
             (ref, assignmentId) => Stream.value(const <LogEntry>[]),
           ),
@@ -153,5 +313,7 @@ void main() {
     );
     expect(assignment, isNotNull);
     expect(find.text('Ella'), findsOneWidget);
+
+    await disposeTestApp(tester);
   });
 }

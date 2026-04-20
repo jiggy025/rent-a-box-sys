@@ -23,13 +23,13 @@ Future<void> pumpUntilFound(
 }
 
 void main() {
-  testWidgets('shows setup when no active assignments exist', (tester) async {
+  testWidgets('shows setup when no ledger data exists', (tester) async {
     await tester.pumpWidget(
       wrapWithTestApp(
         const RootGate(),
         overrides: [
-          activeAssignmentCountProvider.overrideWith(
-            (ref) => Stream<int>.value(0),
+          hasAnyLedgerDataProvider.overrideWith(
+            (ref) => Stream<bool>.value(false),
           ),
           filteredDashboardBoxesProvider.overrideWith(
             (ref) => const AsyncData(<DashboardBoxSummary>[]),
@@ -43,13 +43,14 @@ void main() {
     expect(find.text('Set up your first seller'), findsOneWidget);
   });
 
-  testWidgets('shows dashboard when active assignments exist', (tester) async {
+  testWidgets('shows dashboard when data exists without active assignments',
+      (tester) async {
     await tester.pumpWidget(
       wrapWithTestApp(
         const RootGate(),
         overrides: [
-          activeAssignmentCountProvider.overrideWith(
-            (ref) => Stream<int>.value(1),
+          hasAnyLedgerDataProvider.overrideWith(
+            (ref) => Stream<bool>.value(true),
           ),
           filteredDashboardBoxesProvider.overrideWith(
             (ref) => const AsyncData(<DashboardBoxSummary>[]),
@@ -63,16 +64,16 @@ void main() {
     expect(find.text('Dashboard'), findsOneWidget);
   });
 
-  testWidgets('updates from setup to dashboard when an assignment is created',
+  testWidgets('updates from setup to dashboard when ledger data is created',
       (tester) async {
-    final controller = StreamController<int>.broadcast();
+    final controller = StreamController<bool>.broadcast();
     addTearDown(controller.close);
 
     await tester.pumpWidget(
       wrapWithTestApp(
         const RootGate(),
         overrides: [
-          activeAssignmentCountProvider.overrideWith(
+          hasAnyLedgerDataProvider.overrideWith(
             (ref) => controller.stream,
           ),
           filteredDashboardBoxesProvider.overrideWith(
@@ -82,13 +83,13 @@ void main() {
       ),
     );
 
-    controller.add(0);
+    controller.add(false);
 
     await pumpUntilFound(tester, find.text('Set up your first seller'));
 
     expect(find.text('Set up your first seller'), findsOneWidget);
 
-    controller.add(1);
+    controller.add(true);
 
     await pumpUntilFound(tester, find.text('Dashboard'));
 
