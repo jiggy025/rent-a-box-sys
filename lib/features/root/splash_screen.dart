@@ -39,44 +39,47 @@ class _EspasyoSplashScreenState extends State<EspasyoSplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F1E8),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/branding/espasyo.png',
-                  width: 240,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Espasyo',
-                  textAlign: TextAlign.center,
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF6D4321),
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Preparing your dashboard',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF8D6B4A),
-                  ),
-                ),
-              ],
+      backgroundColor: const Color(0xFFF1E4D2),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: const Color(0xFFF1E4D2),
+            child: Image.asset(
+              'assets/branding/espasyo.png',
+              key: const Key('espasyo-splash-image'),
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
             ),
           ),
-        ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: TweenAnimationBuilder<double>(
+                    key: const Key('espasyo-splash-loader'),
+                    tween: Tween(begin: 0, end: 1),
+                    duration: _transitionDelay,
+                    builder: (context, value, child) {
+                      return LinearProgressIndicator(
+                        value: value,
+                        minHeight: 5,
+                        backgroundColor: const Color(0x40FFFFFF),
+                        valueColor: const AlwaysStoppedAnimation(
+                          Color(0xFF8B5E34),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

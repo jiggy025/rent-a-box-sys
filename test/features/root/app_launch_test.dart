@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_a_box_sys/app/app.dart';
@@ -19,7 +20,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Espasyo'), findsOneWidget);
+    expect(find.byKey(const Key('espasyo-splash-image')), findsOneWidget);
+    expect(find.byKey(const Key('espasyo-splash-loader')), findsOneWidget);
+    expect(find.text('Espasyo'), findsNothing);
+    expect(find.text('Preparing your dashboard'), findsNothing);
     expect(find.text('Dashboard'), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 1801));
