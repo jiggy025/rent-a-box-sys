@@ -54,6 +54,8 @@ void main() {
           .data,
       'PHP 200.00',
     );
+    expect(find.text('Active Boxes Total'), findsNothing);
+    expect(find.text('Lifetime Sales'), findsOneWidget);
 
     await tester.tap(find.text('Cash Out'));
     await pumpSellerDetail(tester);

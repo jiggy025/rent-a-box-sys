@@ -45,6 +45,9 @@ void main() {
     expect(find.text('Jigs'), findsOneWidget);
     expect(find.text('Active'), findsOneWidget);
     expect(find.text('Inactive'), findsOneWidget);
+    expect(find.text('Active Boxes Total'), findsNothing);
+    expect(find.text('Lifetime Sales'), findsWidgets);
+    expect(find.text('2 active boxes'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('seller-search-field')),

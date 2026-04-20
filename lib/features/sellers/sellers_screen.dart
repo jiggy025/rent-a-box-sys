@@ -130,22 +130,9 @@ class _SellerSummaryCard extends StatelessWidget {
               '${summary.activeBoxesCount} active box${summary.activeBoxesCount == 1 ? '' : 'es'}',
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricBlock(
-                    label: 'Active Boxes Total',
-                    value: currency.format(summary.activeBoxesTotal),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricBlock(
-                    label: 'Lifetime Sales',
-                    value: currency.format(summary.lifetimeSales),
-                  ),
-                ),
-              ],
+            _MetricBlock(
+              label: 'Lifetime Sales',
+              value: currency.format(summary.lifetimeSales),
             ),
           ],
         ),

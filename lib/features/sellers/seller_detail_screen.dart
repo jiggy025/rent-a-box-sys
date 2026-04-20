@@ -96,10 +96,6 @@ class SellerDetailScreen extends ConsumerWidget {
                     valueKey: const Key('seller-available-balance-value'),
                   ),
                   _SummaryPanel(
-                    label: 'Active Boxes Total',
-                    value: currency.format(summary.activeBoxesTotal),
-                  ),
-                  _SummaryPanel(
                     label: 'Lifetime Sales',
                     value: currency.format(summary.lifetimeSales),
                   ),
