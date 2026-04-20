@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rent_a_box_sys/database/app_database.dart';
 import 'package:rent_a_box_sys/features/dashboard/dashboard_screen.dart';
-import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
 import 'package:rent_a_box_sys/models/dashboard_guide_state.dart';
 import 'package:rent_a_box_sys/models/seller_adjustment_type.dart';
 import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
@@ -184,13 +183,21 @@ void main() {
     final container = ProviderContainer(
       overrides: [databaseProvider.overrideWithValue(db)],
     );
+    final stateStream = StreamController<DashboardGuideState>.broadcast();
+    final subscription = container.listen<AsyncValue<DashboardGuideState>>(
+      dashboardGuideStateProvider,
+      (previous, next) {
+        next.whenData(stateStream.add);
+      },
+      fireImmediately: true,
+    );
 
     addTearDown(container.dispose);
     addTearDown(db.close);
+    addTearDown(subscription.close);
+    addTearDown(stateStream.close);
 
-    final iterator = StreamIterator(
-      container.read(dashboardGuideStateProvider.stream),
-    );
+    final iterator = StreamIterator(stateStream.stream);
 
     expect(await iterator.moveNext(), isTrue);
     expectGuideState(
