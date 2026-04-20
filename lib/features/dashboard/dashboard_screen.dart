@@ -9,6 +9,8 @@ import 'widgets/add_box_sheet.dart';
 import 'widgets/add_seller_sheet.dart';
 import 'widgets/box_card.dart';
 import 'widgets/dashboard_actions_sheet.dart';
+import 'widgets/dashboard_guide_card.dart';
+import 'widgets/dashboard_help_sheet.dart';
 import 'widgets/reassign_box_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -22,19 +24,29 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  void _openHelpSheet(BuildContext context) {
+    _openSheet(context, const DashboardHelpSheet());
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardBoxes = ref.watch(filteredDashboardBoxesProvider);
+    final guideState = ref.watch(dashboardGuideStateProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
           IconButton(
+            onPressed: () => _openHelpSheet(context),
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Help',
+          ),
+          IconButton(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SellersScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SellersScreen()));
             },
             icon: const Icon(Icons.people_alt_outlined),
             tooltip: 'Sellers',
@@ -67,6 +79,17 @@ class DashboardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            guideState.when(
+              data: (state) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: DashboardGuideCard(
+                  state: state,
+                  onOpenHelp: () => _openHelpSheet(context),
+                ),
+              ),
+              loading: () => const SizedBox.shrink(),
+              error: (error, stack) => const SizedBox.shrink(),
+            ),
             TextField(
               decoration: const InputDecoration(
                 hintText: 'Search box or seller',
@@ -79,8 +102,7 @@ class DashboardScreen extends ConsumerWidget {
             Expanded(
               child: dashboardBoxes.when(
                 data: (rows) => GridView.builder(
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
@@ -94,7 +116,8 @@ class DashboardScreen extends ConsumerWidget {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => BoxDetailScreen(boxId: summary.boxId),
+                            builder: (_) =>
+                                BoxDetailScreen(boxId: summary.boxId),
                           ),
                         );
                       },

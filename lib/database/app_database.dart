@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/dashboard_box_summary.dart';
+import '../models/dashboard_guide_state.dart';
 import '../models/seller_active_box_record.dart';
 import '../models/seller_adjustment_type.dart';
 import '../models/seller_history_record.dart';
@@ -247,9 +248,9 @@ class AppDatabase extends _$AppDatabase {
           updatedAt: Value(now),
         ),
       );
-      await (update(
-        rentalAssignments,
-      )..where((tbl) => tbl.sellerId.equals(sellerId) & tbl.endedAt.isNull()))
+      await (update(rentalAssignments)..where(
+            (tbl) => tbl.sellerId.equals(sellerId) & tbl.endedAt.isNull(),
+          ))
           .write(RentalAssignmentsCompanion(endedAt: Value(now)));
     });
   }
@@ -433,6 +434,67 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Stream<DashboardGuideState> watchDashboardGuideState() {
+    return customSelect(
+      '''
+      SELECT
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM sellers AS s
+            WHERE s.is_active = 1
+          ),
+          0
+        ) AS seller_count,
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM boxes AS b
+            WHERE b.is_active = 1
+          ),
+          0
+        ) AS active_box_count,
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM rental_assignments AS ra
+            WHERE ra.ended_at IS NULL
+          ),
+          0
+        ) AS active_assignment_count,
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM log_entries AS le
+          ),
+          0
+        ) AS log_entry_count,
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM seller_adjustments AS sa
+          ),
+          0
+        ) AS seller_adjustment_count
+      ''',
+      readsFrom: {
+        sellers,
+        boxes,
+        rentalAssignments,
+        logEntries,
+        sellerAdjustments,
+      },
+    ).watchSingle().map(
+      (row) => DashboardGuideState(
+        sellerCount: row.read<int>('seller_count'),
+        activeBoxCount: row.read<int>('active_box_count'),
+        activeAssignmentCount: row.read<int>('active_assignment_count'),
+        logEntryCount: row.read<int>('log_entry_count'),
+        sellerAdjustmentCount: row.read<int>('seller_adjustment_count'),
+      ),
+    );
+  }
+
   Stream<List<LogEntry>> watchEntriesForAssignment(String assignmentId) {
     return (select(logEntries)
           ..where((tbl) => tbl.rentalAssignmentId.equals(assignmentId))
@@ -450,9 +512,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<SellerLedgerSummary?> sellerLedgerSummary(String sellerId) async {
-    final rows = await _sellerLedgerSummarySelect(
-      sellerId: sellerId,
-    ).get();
+    final rows = await _sellerLedgerSummarySelect(sellerId: sellerId).get();
     if (rows.isEmpty) {
       return null;
     }
@@ -476,12 +536,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<SellerLedgerSummary>> watchSellerLedgerSummaries() {
-    return _sellerLedgerSummarySelect()
-        .watch()
-        .map((rows) => rows.map(_mapSellerLedgerSummary).toList(growable: false));
+    return _sellerLedgerSummarySelect().watch().map(
+      (rows) => rows.map(_mapSellerLedgerSummary).toList(growable: false),
+    );
   }
 
-  Stream<List<SellerActiveBoxRecord>> watchActiveBoxesForSeller(String sellerId) {
+  Stream<List<SellerActiveBoxRecord>> watchActiveBoxesForSeller(
+    String sellerId,
+  ) {
     return customSelect(
       '''
       SELECT
@@ -525,12 +587,9 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<SellerTransactionRecord>> watchSellerTransactionHistory(
     String sellerId,
   ) {
-    return _sellerTransactionHistorySelect(sellerId)
-        .watch()
-        .map(
-          (rows) =>
-              rows.map(_mapSellerTransactionRecord).toList(growable: false),
-        );
+    return _sellerTransactionHistorySelect(sellerId).watch().map(
+      (rows) => rows.map(_mapSellerTransactionRecord).toList(growable: false),
+    );
   }
 
   Future<List<SellerHistoryRecord>> sellerHistory(String sellerId) async {
