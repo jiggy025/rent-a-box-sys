@@ -38,6 +38,7 @@ Fields:
 - `name`
 - `contactInfo`
 - `isActive`
+- `inactiveAt`
 - `createdAt`
 - `updatedAt`
 
@@ -94,6 +95,24 @@ Rules:
 - Dashboard totals are computed from entries under the active assignment only.
 - Historical entries remain attached to the assignment they were created under.
 
+### 3.5 SellerAdjustment
+
+Represents seller-level money going out of the ledger.
+
+Fields:
+- `id`
+- `sellerId`
+- `type`
+- `amount`
+- `reason`
+- `createdAt`
+
+Rules:
+- `type` is either `cashOut` or `manualDeduction`.
+- seller adjustments reduce available balance but do not reduce lifetime sales
+- manual deductions require a reason
+- amounts cannot exceed the seller's current available balance
+
 ## 4. Business Rules
 
 ### 4.1 Seller and Box Rules
@@ -109,12 +128,26 @@ Rules:
 - When a box is reassigned, the new seller starts with a clean live total for that box.
 - Previous totals and entries remain available in historical records through the closed assignment.
 - Seller history may aggregate across all past and present assignments linked to that seller.
+- `Lifetime Sales` is the total of all seller sales across all assignments and never decreases.
+- `Available Balance` is seller sales minus seller adjustments and is the amount available for cash out or deduction.
+- `Active Boxes Total` may still exist as a derived value in the data model, but it should not be surfaced as a primary top-line seller summary because it duplicates information shown elsewhere.
 
 ### 4.3 Vacancy Rules
 
 - Boxes with no active assignment are shown as vacant.
 - Vacant boxes remain visible on the dashboard.
 - Vacant boxes cannot accept new log entries until a seller is assigned.
+
+### 4.4 Seller Status and Payout Rules
+
+- Sellers can be marked inactive without deleting their history.
+- Marking a seller inactive closes all active assignments for that seller and makes those boxes vacant.
+- Inactive sellers remain reusable if they return later.
+- Cash out and manual deduction are separate actions so the ledger stays understandable for the cashier and seller.
+- The seller transaction history merges:
+  - positive sale entries from `log_entries`
+  - negative `cashOut` entries from `seller_adjustments`
+  - negative `manualDeduction` entries from `seller_adjustments`
 
 ## 5. User Experience Design
 
@@ -140,31 +173,41 @@ Characteristics:
 - current seller and live total are readable at a glance
 - design stays modern and clean instead of cartoonish or overly decorative
 
+### 5.3 Splash and Onboarding Direction
+
+The app should feel branded and welcoming on launch, but onboarding should not block the cashier from reaching the actual working dashboard.
+
+Selected direction:
+- show a short branded `Espasyo` splash screen on launch
+- always land on the dashboard after the splash
+- replace the old forced first-launch setup flow with a dashboard-based step-by-step guide
+
+Onboarding principles:
+- guide users inside the real product instead of a separate wizard
+- keep setup instructional, not mandatory
+- allow reopening the guide later through a dashboard help action
+
 ## 6. Screen Design
 
-### 6.1 First-Launch Setup
+### 6.1 Splash Screen
 
-Shown only when there are no active rental assignments yet.
+Shown on app launch before entering the dashboard.
+
+Behavior:
+- display the `Espasyo.png` artwork centered on a warm cream background
+- use a full-screen presentation with a short automatic transition of about `1.8 seconds`
+- no interactive controls are needed
 
 Purpose:
-- eliminate empty-state confusion
-- ensure the user can reach a usable dashboard with real data quickly
-
-Recommended flow:
-1. Create first seller
-2. Create first box
-3. Create first rental assignment linking the seller to the box
-4. Enter dashboard
-
-Notes:
-- keep this setup lightweight and fast
-- do not turn first launch into a long onboarding sequence
+- introduce the app brand cleanly
+- make startup feel intentional rather than abrupt
 
 ### 6.2 Dashboard
 
 This is the main home screen for daily use.
 
 Content:
+- optional dashboard guide card at the top when the app is empty or only partly configured
 - search bar for box number or seller name
 - phone-friendly two-column grid of box cards
 - each card shows:
@@ -178,10 +221,27 @@ Actions:
 - `Add Seller`
 - `Add Box`
 - `Reassign Box`
+- `Help`
+- `Sellers`
 
 Navigation:
 - tap a box card to open box detail
-- tap a seller name to open seller history
+- tap a seller name to open seller detail/history
+
+Dashboard guide behavior:
+- while the app is incomplete, show a large `How to use Espasyo` guide card above the search bar
+- the guide is reactive to actual data state
+- completed steps show as done
+- the next incomplete step gets the strongest emphasis
+- once the user has at least one seller, one box, and one active assignment, replace the large guide card with a smaller help card
+- the app bar help action always reopens the full guide
+
+Guide steps:
+1. `Add your first seller`
+2. `Add your first box`
+3. `Occupy a vacant box`
+4. `Tap a box to add sales`
+5. `Manage seller payouts`
 
 ### 6.3 Box Detail
 
@@ -200,34 +260,66 @@ Content:
 Behavior:
 - adding a new entry updates total and history immediately
 - only entries from the current assignment are shown in the default history list
+- if the box is vacant, the screen should show a clear action such as `Occupy this vacant box`
 
-### 6.4 Seller History
+### 6.4 Seller Detail and History
 
-This screen exists to preserve seller-centric records across multiple rental periods.
+This screen exists to preserve seller-centric records across multiple rental periods while also supporting cashier payout workflows.
 
 Content:
-- seller profile information
+- seller name and status
+- top-line summary cards for:
+  - `Available Balance`
+  - `Lifetime Sales`
+- action buttons for:
+  - `Cash Out`
+  - `Manual Deduction`
+  - `Mark Inactive`
 - active boxes currently rented by the seller
+- merged transaction history
 - previous box assignments
-- lifetime summaries and totals across all assignments
 
 Purpose:
 - keep long-term records on the seller side
 - avoid mixing previous renters into a box's current live total
+- keep the payout and deduction workflow attached to the seller ledger
 
-### 6.5 Reassign Box Flow
+Notes:
+- do not show `Active Boxes Total` as a top summary card
+- the `Active Boxes` section already communicates the current live box state and values
+
+### 6.5 Sellers List
+
+This screen gives the cashier a searchable overview of all sellers.
+
+Content:
+- search by seller name
+- active sellers first, inactive sellers after
+- each seller card shows:
+  - seller name
+  - active or inactive status
+  - available balance
+  - lifetime sales
+  - a small active box count line such as `1 active box`
+
+Purpose:
+- provide a fast entry point into seller payout and history management
+- keep the summary list readable without duplicating too many metrics
+
+### 6.6 Reassign Box Flow
 
 Used when a box changes renter.
 
 Flow:
 1. open reassign action from dashboard or box detail
 2. confirm the current assignment will be closed
-3. select an existing seller or create a new seller
+3. select an existing seller from the database
 4. create a new active rental assignment for the box
 
 Result:
 - old assignment becomes historical
 - new assignment becomes the source of the live total and visible current history
+- if the chosen seller was inactive, the seller is reactivated automatically
 
 ## 7. Technical Architecture
 
@@ -252,20 +344,25 @@ Expected tables:
 - `boxes`
 - `rental_assignments`
 - `log_entries`
+- `seller_adjustments`
 
 Supporting query patterns:
 - active dashboard boxes joined with active assignments and sellers
 - assignment-scoped totals using `SUM(price)`
 - seller history across assignments
+- seller available balance from sales minus adjustments
+- merged seller transaction history from sales and adjustments
 - vacancy detection for boxes with no active assignment
 
 ### 7.3 Reactive Data Flow
 
+- splash transitions into a dashboard-first home flow
 - dashboard watches the current set of boxes and active assignments
+- dashboard guide state is derived from whether sellers, boxes, and active assignments exist
 - each box total is calculated from log entries tied to that active assignment
 - box detail watches one assignment and its entries
-- seller history watches one seller and all related assignments
-- first-launch setup state is derived from whether active assignments exist
+- seller detail watches seller summary, active boxes, transaction history, and assignment history
+- seller list watches searchable seller ledger summaries
 
 Drift streams should drive the UI so new entries appear without manual refresh.
 
@@ -291,6 +388,9 @@ Drift streams should drive the UI so new entries appear without manual refresh.
 
 - a box cannot receive a new log entry if it has no active assignment
 - reassigning a box requires explicit confirmation
+- cash out and manual deduction cannot exceed available balance
+- manual deduction requires a reason
+- marking a seller inactive requires explicit confirmation because it vacates active boxes
 - delete flows are excluded from V1
 
 ### 9.3 State Visibility
@@ -314,16 +414,20 @@ Test coverage should verify:
 ### 10.2 Widget and UI Tests
 
 Test coverage should verify:
-- first-launch setup appears when there are no active assignments
+- splash screen appears and transitions into dashboard
+- dashboard guide appears when setup is incomplete and can be reopened from help
 - dashboard renders occupied and vacant boxes correctly
 - box detail rapid-entry form validates and submits correctly
 - totals update immediately after a new entry is added
-- seller history shows cross-assignment records
+- seller detail shows cross-assignment records
+- seller cash out and manual deduction update available balance and ledger history correctly
+- marking a seller inactive vacates active boxes without deleting seller history
 
 ## 11. V1 Scope
 
 Included:
-- first-launch setup
+- branded splash screen
+- dashboard-first how-to guide
 - seller creation
 - box creation
 - rental assignment creation
@@ -331,7 +435,8 @@ Included:
 - dashboard with search
 - modern box-style dashboard cards
 - box detail rapid-entry logging
-- seller history view
+- sellers list
+- seller detail and payout workflows
 - full offline local storage
 
 Not required for V1:
@@ -345,11 +450,12 @@ Not required for V1:
 
 V1 is successful if the user can:
 - install and open the Android app with no preloaded data
-- complete first launch setup quickly
+- see a short branded splash before entering the app
+- learn the initial workflow from the dashboard guide without being forced through a setup wizard
 - see a dashboard of boxes that visually feels like rentable boxes
 - add sellers and boxes from the dashboard
 - reassign a box without losing historical seller records
 - log entries quickly from a phone
 - trust that each box total reflects only the current renter
-- review seller history across multiple rental periods
+- review seller history and payouts across multiple rental periods
 - use the app fully offline
