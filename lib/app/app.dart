@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../features/root/root_gate.dart';
 import 'app_theme.dart';
+import '../features/root/splash_screen.dart';
 
 class RentABoxApp extends StatelessWidget {
   const RentABoxApp({super.key});
@@ -12,7 +12,7 @@ class RentABoxApp extends StatelessWidget {
       title: 'Rent-a-Box Ledger',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: const RootGate(),
+      home: const EspasyoSplashScreen(),
     );
   }
 }
