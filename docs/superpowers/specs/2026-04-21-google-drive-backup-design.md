@@ -79,7 +79,7 @@ Restore behavior:
 - create a safety backup of the current database before restoring another backup
 - restart or reload app state after restore
 
-Restore is not required in the first implementation pass if backup/upload is already large, but the backup format must support it.
+Restore from Google Drive should be included in the first backup implementation because uninstall recovery is only useful if the user can reinstall, reconnect the same Google account, and restore a cloud backup.
 
 ## 4. Backup Timing
 
@@ -292,9 +292,10 @@ Recommended first implementation:
 - backup status UI
 - manual `Back Up Now`
 - app-open catch-up backup/upload
+- restore from local backups
+- restore from Google Drive backups after reinstall or data loss
 
 Can be deferred:
-- full restore UI
 - Android background worker
 - passphrase encryption
 - multi-device sync
@@ -311,3 +312,4 @@ The feature is successful if:
 - the app uses limited Drive app-data permission only
 - a failed cloud upload never harms the local database or local backup
 - users can understand whether their latest backup is local-only, pending, or uploaded
+- after reinstall, reconnecting the same Google account can show and restore prior Drive backups
