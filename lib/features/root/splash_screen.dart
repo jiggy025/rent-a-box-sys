@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../backups/backup_startup_runner.dart';
 import '../dashboard/dashboard_screen.dart';
 
 class EspasyoSplashScreen extends StatefulWidget {
@@ -33,53 +35,65 @@ class _EspasyoSplashScreenState extends State<EspasyoSplashScreen> {
     }
 
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      MaterialPageRoute(
+        builder: (_) => const BackupStartupRunner(child: DashboardScreen()),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1E4D2),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          ColoredBox(
-            color: const Color(0xFFF1E4D2),
-            child: Image.asset(
-              'assets/branding/espasyo.png',
-              key: const Key('espasyo-splash-image'),
-              fit: BoxFit.contain,
-              alignment: Alignment.center,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Color(0xFFF1E4D2),
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF1E4D2),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(
+              color: const Color(0xFFF1E4D2),
+              child: Image.asset(
+                'assets/branding/espasyo.png',
+                key: const Key('espasyo-splash-image'),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                filterQuality: FilterQuality.high,
+              ),
             ),
-          ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: TweenAnimationBuilder<double>(
-                    key: const Key('espasyo-splash-loader'),
-                    tween: Tween(begin: 0, end: 1),
-                    duration: _transitionDelay,
-                    builder: (context, value, child) {
-                      return LinearProgressIndicator(
-                        value: value,
-                        minHeight: 5,
-                        backgroundColor: const Color(0x40FFFFFF),
-                        valueColor: const AlwaysStoppedAnimation(
-                          Color(0xFF8B5E34),
-                        ),
-                      );
-                    },
+            SafeArea(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: TweenAnimationBuilder<double>(
+                      key: const Key('espasyo-splash-loader'),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: _transitionDelay,
+                      builder: (context, value, child) {
+                        return LinearProgressIndicator(
+                          value: value,
+                          minHeight: 5,
+                          backgroundColor: const Color(0x40FFFFFF),
+                          valueColor: const AlwaysStoppedAnimation(
+                            Color(0xFF8B5E34),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

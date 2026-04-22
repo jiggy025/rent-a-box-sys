@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/dashboard_box_summary.dart';
 import '../models/dashboard_guide_state.dart';
+import '../models/backup_upload_status.dart';
 import '../models/seller_active_box_record.dart';
 import '../models/seller_adjustment_type.dart';
 import '../models/seller_history_record.dart';
@@ -82,16 +83,82 @@ class SellerAdjustments extends Table {
   Set<Column<Object>>? get primaryKey => {id};
 }
 
-@DriftDatabase(
-  tables: [Sellers, Boxes, RentalAssignments, LogEntries, SellerAdjustments],
-)
-class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
-
-  AppDatabase.forTesting(super.executor);
+class AppPreferences extends Table {
+  TextColumn get key => text().withLength(min: 1, max: 80)();
+  TextColumn get value => text().withLength(min: 0, max: 255)();
 
   @override
-  int get schemaVersion => 2;
+  Set<Column<Object>>? get primaryKey => {key};
+}
+
+class BackupRecords extends Table {
+  TextColumn get id => text().clientDefault(() => const Uuid().v4())();
+  TextColumn get fileName => text().withLength(min: 1, max: 180)();
+  TextColumn get localPath => text().withLength(min: 1, max: 500)();
+  DateTimeColumn get createdAt => dateTime()();
+  TextColumn get backupDate => text().withLength(min: 10, max: 10)();
+  IntColumn get sizeBytes => integer()();
+  TextColumn get sha256 => text().withLength(min: 64, max: 64)();
+  TextColumn get status => text().withDefault(
+    Constant(BackupUploadStatus.localReady.databaseValue),
+  )();
+  TextColumn get driveFileId => text().nullable()();
+  DateTimeColumn get uploadedAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
+
+  @override
+  Set<Column<Object>>? get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {fileName},
+  ];
+}
+
+@DriftDatabase(
+  tables: [
+    Sellers,
+    Boxes,
+    RentalAssignments,
+    LogEntries,
+    SellerAdjustments,
+    AppPreferences,
+    BackupRecords,
+  ],
+)
+class AppDatabase extends _$AppDatabase {
+  static const dashboardRefresherDismissedKey = 'dashboard_refresher_dismissed';
+
+  AppDatabase() : _databaseFile = null, super(_openConnection());
+
+  AppDatabase.forFile(File file)
+    : _databaseFile = file,
+      super(_openConnectionFor(file));
+
+  AppDatabase.forTesting(QueryExecutor executor)
+    : _databaseFile = null,
+      super(_prepareTestingExecutor(executor)) {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  }
+
+  final File? _databaseFile;
+
+  static QueryExecutor _prepareTestingExecutor(QueryExecutor executor) {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    return executor;
+  }
+
+  static Future<File> databaseFile() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return File(p.join(directory.path, 'rent_a_box_ledger.sqlite'));
+  }
+
+  Future<File> resolvedDatabaseFile() async {
+    return _databaseFile ?? databaseFile();
+  }
+
+  @override
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -103,6 +170,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.addColumn(sellers, sellers.inactiveAt);
         await m.createTable(sellerAdjustments);
+      }
+      if (from < 3) {
+        await m.createTable(appPreferences);
+      }
+      if (from < 4) {
+        await m.createTable(backupRecords);
       }
       await _ensureSchemaProtections();
     },
@@ -482,7 +555,15 @@ class AppDatabase extends _$AppDatabase {
             FROM rental_assignments AS ra
           ) THEN 1
           ELSE 0
-        END AS has_completed_initial_setup
+        END AS has_completed_initial_setup,
+        COALESCE(
+          (
+            SELECT ap.value
+            FROM app_preferences AS ap
+            WHERE ap.key = '${AppDatabase.dashboardRefresherDismissedKey}'
+          ),
+          '0'
+        ) AS refresher_dismissed
       ''',
       readsFrom: {
         sellers,
@@ -490,6 +571,7 @@ class AppDatabase extends _$AppDatabase {
         rentalAssignments,
         logEntries,
         sellerAdjustments,
+        appPreferences,
       },
     ).watchSingle().map(
       (row) => DashboardGuideState(
@@ -500,6 +582,133 @@ class AppDatabase extends _$AppDatabase {
         sellerAdjustmentCount: row.read<int>('seller_adjustment_count'),
         hasCompletedInitialSetup:
             row.read<int>('has_completed_initial_setup') == 1,
+        isRefresherDismissed: row.read<String>('refresher_dismissed') == '1',
+      ),
+    );
+  }
+
+  Future<void> setDashboardRefresherDismissed(bool isDismissed) {
+    return into(appPreferences).insertOnConflictUpdate(
+      AppPreferencesCompanion.insert(
+        key: dashboardRefresherDismissedKey,
+        value: isDismissed ? '1' : '0',
+      ),
+    );
+  }
+
+  Future<String> createBackupRecord({
+    required String fileName,
+    required String localPath,
+    required String backupDate,
+    required int sizeBytes,
+    required String sha256,
+    required DateTime createdAt,
+  }) async {
+    final row = await into(backupRecords).insertReturning(
+      BackupRecordsCompanion.insert(
+        fileName: fileName,
+        localPath: localPath,
+        createdAt: createdAt,
+        backupDate: backupDate,
+        sizeBytes: sizeBytes,
+        sha256: sha256,
+        status: Value(BackupUploadStatus.localReady.databaseValue),
+      ),
+    );
+
+    return row.id;
+  }
+
+  Future<void> createConsistentBackupFile(File targetFile) async {
+    await targetFile.parent.create(recursive: true);
+    if (await targetFile.exists()) {
+      await targetFile.delete();
+    }
+
+    final escapedPath = targetFile.path.replaceAll("'", "''");
+    await customStatement("VACUUM INTO '$escapedPath'");
+  }
+
+  Future<List<BackupRecord>> backupRecordsList() {
+    return (select(backupRecords)..orderBy([
+          (tbl) => OrderingTerm.desc(tbl.createdAt),
+          (tbl) => OrderingTerm.desc(tbl.fileName),
+        ]))
+        .get();
+  }
+
+  Stream<List<BackupRecord>> watchBackupRecordsList() {
+    return (select(backupRecords)..orderBy([
+          (tbl) => OrderingTerm.desc(tbl.createdAt),
+          (tbl) => OrderingTerm.desc(tbl.fileName),
+        ]))
+        .watch();
+  }
+
+  Future<BackupRecord?> backupRecordById(String id) {
+    return (select(
+      backupRecords,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<BackupRecord?> backupRecordForDate(String backupDate) {
+    return (select(backupRecords)
+          ..where((tbl) => tbl.backupDate.equals(backupDate))
+          ..orderBy([
+            (tbl) => OrderingTerm.desc(tbl.createdAt),
+            (tbl) => OrderingTerm.desc(tbl.fileName),
+          ])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  Future<List<BackupRecord>> pendingBackupRecords() {
+    return (select(backupRecords)
+          ..where(
+            (tbl) => tbl.status.isIn([
+              BackupUploadStatus.localReady.databaseValue,
+              BackupUploadStatus.uploading.databaseValue,
+              BackupUploadStatus.failed.databaseValue,
+            ]),
+          )
+          ..orderBy([
+            (tbl) => OrderingTerm.asc(tbl.createdAt),
+            (tbl) => OrderingTerm.asc(tbl.fileName),
+          ]))
+        .get();
+  }
+
+  Future<void> markBackupUploading(String id) {
+    return (update(backupRecords)..where((tbl) => tbl.id.equals(id))).write(
+      BackupRecordsCompanion(
+        status: Value(BackupUploadStatus.uploading.databaseValue),
+        lastError: const Value(null),
+      ),
+    );
+  }
+
+  Future<void> markBackupUploaded(
+    String id, {
+    required String driveFileId,
+    required DateTime uploadedAt,
+  }) {
+    return (update(backupRecords)..where((tbl) => tbl.id.equals(id))).write(
+      BackupRecordsCompanion(
+        status: Value(BackupUploadStatus.uploaded.databaseValue),
+        driveFileId: Value(driveFileId),
+        uploadedAt: Value(uploadedAt),
+        lastError: const Value(null),
+      ),
+    );
+  }
+
+  Future<void> markBackupFailed(String id, String error) {
+    return (update(backupRecords)..where((tbl) => tbl.id.equals(id))).write(
+      BackupRecordsCompanion(
+        status: Value(BackupUploadStatus.failed.databaseValue),
+        driveFileId: const Value(null),
+        uploadedAt: const Value(null),
+        lastError: Value(error),
       ),
     );
   }
@@ -802,9 +1011,11 @@ class AppDatabase extends _$AppDatabase {
 }
 
 LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File(p.join(directory.path, 'rent_a_box_ledger.sqlite'));
-    return NativeDatabase(file);
-  });
+  return LazyDatabase(
+    () async => NativeDatabase(await AppDatabase.databaseFile()),
+  );
+}
+
+LazyDatabase _openConnectionFor(File file) {
+  return LazyDatabase(() async => NativeDatabase(file));
 }

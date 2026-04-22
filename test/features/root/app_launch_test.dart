@@ -22,6 +22,10 @@ void main() {
 
     expect(find.byKey(const Key('espasyo-splash-image')), findsOneWidget);
     expect(find.byKey(const Key('espasyo-splash-loader')), findsOneWidget);
+    expect(
+      tester.widget<Image>(find.byKey(const Key('espasyo-splash-image'))).fit,
+      BoxFit.cover,
+    );
     expect(find.text('Espasyo'), findsNothing);
     expect(find.text('Preparing your dashboard'), findsNothing);
     expect(find.text('Dashboard'), findsNothing);

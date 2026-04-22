@@ -2090,6 +2090,902 @@ class SellerAdjustmentsCompanion extends UpdateCompanion<SellerAdjustment> {
   }
 }
 
+class $AppPreferencesTable extends AppPreferences
+    with TableInfo<$AppPreferencesTable, AppPreference> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppPreferencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 80,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 0,
+      maxTextLength: 255,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_preferences';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppPreference> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  AppPreference map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppPreference(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $AppPreferencesTable createAlias(String alias) {
+    return $AppPreferencesTable(attachedDatabase, alias);
+  }
+}
+
+class AppPreference extends DataClass implements Insertable<AppPreference> {
+  final String key;
+  final String value;
+  const AppPreference({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  AppPreferencesCompanion toCompanion(bool nullToAbsent) {
+    return AppPreferencesCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory AppPreference.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppPreference(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  AppPreference copyWith({String? key, String? value}) =>
+      AppPreference(key: key ?? this.key, value: value ?? this.value);
+  AppPreference copyWithCompanion(AppPreferencesCompanion data) {
+    return AppPreference(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppPreference(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppPreference &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class AppPreferencesCompanion extends UpdateCompanion<AppPreference> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const AppPreferencesCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AppPreferencesCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<AppPreference> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AppPreferencesCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return AppPreferencesCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppPreferencesCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BackupRecordsTable extends BackupRecords
+    with TableInfo<$BackupRecordsTable, BackupRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BackupRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _fileNameMeta = const VerificationMeta(
+    'fileName',
+  );
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+    'file_name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 180,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localPathMeta = const VerificationMeta(
+    'localPath',
+  );
+  @override
+  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
+    'local_path',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 500,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _backupDateMeta = const VerificationMeta(
+    'backupDate',
+  );
+  @override
+  late final GeneratedColumn<String> backupDate = GeneratedColumn<String>(
+    'backup_date',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 10,
+      maxTextLength: 10,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
+    'sizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+    'size_bytes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 64,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BackupUploadStatus.localReady.databaseValue),
+  );
+  static const VerificationMeta _driveFileIdMeta = const VerificationMeta(
+    'driveFileId',
+  );
+  @override
+  late final GeneratedColumn<String> driveFileId = GeneratedColumn<String>(
+    'drive_file_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _uploadedAtMeta = const VerificationMeta(
+    'uploadedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> uploadedAt = GeneratedColumn<DateTime>(
+    'uploaded_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fileName,
+    localPath,
+    createdAt,
+    backupDate,
+    sizeBytes,
+    sha256,
+    status,
+    driveFileId,
+    uploadedAt,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'backup_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BackupRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(
+        _fileNameMeta,
+        fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('local_path')) {
+      context.handle(
+        _localPathMeta,
+        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localPathMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('backup_date')) {
+      context.handle(
+        _backupDateMeta,
+        backupDate.isAcceptableOrUnknown(data['backup_date']!, _backupDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_backupDateMeta);
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(
+        _sizeBytesMeta,
+        sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sizeBytesMeta);
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(
+        _sha256Meta,
+        sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_sha256Meta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('drive_file_id')) {
+      context.handle(
+        _driveFileIdMeta,
+        driveFileId.isAcceptableOrUnknown(
+          data['drive_file_id']!,
+          _driveFileIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('uploaded_at')) {
+      context.handle(
+        _uploadedAtMeta,
+        uploadedAt.isAcceptableOrUnknown(data['uploaded_at']!, _uploadedAtMeta),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {fileName},
+  ];
+  @override
+  BackupRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BackupRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      fileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_name'],
+      )!,
+      localPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_path'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      backupDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}backup_date'],
+      )!,
+      sizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size_bytes'],
+      )!,
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      driveFileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}drive_file_id'],
+      ),
+      uploadedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}uploaded_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $BackupRecordsTable createAlias(String alias) {
+    return $BackupRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class BackupRecord extends DataClass implements Insertable<BackupRecord> {
+  final String id;
+  final String fileName;
+  final String localPath;
+  final DateTime createdAt;
+  final String backupDate;
+  final int sizeBytes;
+  final String sha256;
+  final String status;
+  final String? driveFileId;
+  final DateTime? uploadedAt;
+  final String? lastError;
+  const BackupRecord({
+    required this.id,
+    required this.fileName,
+    required this.localPath,
+    required this.createdAt,
+    required this.backupDate,
+    required this.sizeBytes,
+    required this.sha256,
+    required this.status,
+    this.driveFileId,
+    this.uploadedAt,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['file_name'] = Variable<String>(fileName);
+    map['local_path'] = Variable<String>(localPath);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['backup_date'] = Variable<String>(backupDate);
+    map['size_bytes'] = Variable<int>(sizeBytes);
+    map['sha256'] = Variable<String>(sha256);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || driveFileId != null) {
+      map['drive_file_id'] = Variable<String>(driveFileId);
+    }
+    if (!nullToAbsent || uploadedAt != null) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  BackupRecordsCompanion toCompanion(bool nullToAbsent) {
+    return BackupRecordsCompanion(
+      id: Value(id),
+      fileName: Value(fileName),
+      localPath: Value(localPath),
+      createdAt: Value(createdAt),
+      backupDate: Value(backupDate),
+      sizeBytes: Value(sizeBytes),
+      sha256: Value(sha256),
+      status: Value(status),
+      driveFileId: driveFileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(driveFileId),
+      uploadedAt: uploadedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uploadedAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+    );
+  }
+
+  factory BackupRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BackupRecord(
+      id: serializer.fromJson<String>(json['id']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      localPath: serializer.fromJson<String>(json['localPath']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      backupDate: serializer.fromJson<String>(json['backupDate']),
+      sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      sha256: serializer.fromJson<String>(json['sha256']),
+      status: serializer.fromJson<String>(json['status']),
+      driveFileId: serializer.fromJson<String?>(json['driveFileId']),
+      uploadedAt: serializer.fromJson<DateTime?>(json['uploadedAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'fileName': serializer.toJson<String>(fileName),
+      'localPath': serializer.toJson<String>(localPath),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'backupDate': serializer.toJson<String>(backupDate),
+      'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'sha256': serializer.toJson<String>(sha256),
+      'status': serializer.toJson<String>(status),
+      'driveFileId': serializer.toJson<String?>(driveFileId),
+      'uploadedAt': serializer.toJson<DateTime?>(uploadedAt),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  BackupRecord copyWith({
+    String? id,
+    String? fileName,
+    String? localPath,
+    DateTime? createdAt,
+    String? backupDate,
+    int? sizeBytes,
+    String? sha256,
+    String? status,
+    Value<String?> driveFileId = const Value.absent(),
+    Value<DateTime?> uploadedAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+  }) => BackupRecord(
+    id: id ?? this.id,
+    fileName: fileName ?? this.fileName,
+    localPath: localPath ?? this.localPath,
+    createdAt: createdAt ?? this.createdAt,
+    backupDate: backupDate ?? this.backupDate,
+    sizeBytes: sizeBytes ?? this.sizeBytes,
+    sha256: sha256 ?? this.sha256,
+    status: status ?? this.status,
+    driveFileId: driveFileId.present ? driveFileId.value : this.driveFileId,
+    uploadedAt: uploadedAt.present ? uploadedAt.value : this.uploadedAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  BackupRecord copyWithCompanion(BackupRecordsCompanion data) {
+    return BackupRecord(
+      id: data.id.present ? data.id.value : this.id,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      backupDate: data.backupDate.present
+          ? data.backupDate.value
+          : this.backupDate,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      status: data.status.present ? data.status.value : this.status,
+      driveFileId: data.driveFileId.present
+          ? data.driveFileId.value
+          : this.driveFileId,
+      uploadedAt: data.uploadedAt.present
+          ? data.uploadedAt.value
+          : this.uploadedAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BackupRecord(')
+          ..write('id: $id, ')
+          ..write('fileName: $fileName, ')
+          ..write('localPath: $localPath, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('backupDate: $backupDate, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('sha256: $sha256, ')
+          ..write('status: $status, ')
+          ..write('driveFileId: $driveFileId, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fileName,
+    localPath,
+    createdAt,
+    backupDate,
+    sizeBytes,
+    sha256,
+    status,
+    driveFileId,
+    uploadedAt,
+    lastError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BackupRecord &&
+          other.id == this.id &&
+          other.fileName == this.fileName &&
+          other.localPath == this.localPath &&
+          other.createdAt == this.createdAt &&
+          other.backupDate == this.backupDate &&
+          other.sizeBytes == this.sizeBytes &&
+          other.sha256 == this.sha256 &&
+          other.status == this.status &&
+          other.driveFileId == this.driveFileId &&
+          other.uploadedAt == this.uploadedAt &&
+          other.lastError == this.lastError);
+}
+
+class BackupRecordsCompanion extends UpdateCompanion<BackupRecord> {
+  final Value<String> id;
+  final Value<String> fileName;
+  final Value<String> localPath;
+  final Value<DateTime> createdAt;
+  final Value<String> backupDate;
+  final Value<int> sizeBytes;
+  final Value<String> sha256;
+  final Value<String> status;
+  final Value<String?> driveFileId;
+  final Value<DateTime?> uploadedAt;
+  final Value<String?> lastError;
+  final Value<int> rowid;
+  const BackupRecordsCompanion({
+    this.id = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.localPath = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.backupDate = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.status = const Value.absent(),
+    this.driveFileId = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BackupRecordsCompanion.insert({
+    this.id = const Value.absent(),
+    required String fileName,
+    required String localPath,
+    required DateTime createdAt,
+    required String backupDate,
+    required int sizeBytes,
+    required String sha256,
+    this.status = const Value.absent(),
+    this.driveFileId = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : fileName = Value(fileName),
+       localPath = Value(localPath),
+       createdAt = Value(createdAt),
+       backupDate = Value(backupDate),
+       sizeBytes = Value(sizeBytes),
+       sha256 = Value(sha256);
+  static Insertable<BackupRecord> custom({
+    Expression<String>? id,
+    Expression<String>? fileName,
+    Expression<String>? localPath,
+    Expression<DateTime>? createdAt,
+    Expression<String>? backupDate,
+    Expression<int>? sizeBytes,
+    Expression<String>? sha256,
+    Expression<String>? status,
+    Expression<String>? driveFileId,
+    Expression<DateTime>? uploadedAt,
+    Expression<String>? lastError,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fileName != null) 'file_name': fileName,
+      if (localPath != null) 'local_path': localPath,
+      if (createdAt != null) 'created_at': createdAt,
+      if (backupDate != null) 'backup_date': backupDate,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (sha256 != null) 'sha256': sha256,
+      if (status != null) 'status': status,
+      if (driveFileId != null) 'drive_file_id': driveFileId,
+      if (uploadedAt != null) 'uploaded_at': uploadedAt,
+      if (lastError != null) 'last_error': lastError,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BackupRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? fileName,
+    Value<String>? localPath,
+    Value<DateTime>? createdAt,
+    Value<String>? backupDate,
+    Value<int>? sizeBytes,
+    Value<String>? sha256,
+    Value<String>? status,
+    Value<String?>? driveFileId,
+    Value<DateTime?>? uploadedAt,
+    Value<String?>? lastError,
+    Value<int>? rowid,
+  }) {
+    return BackupRecordsCompanion(
+      id: id ?? this.id,
+      fileName: fileName ?? this.fileName,
+      localPath: localPath ?? this.localPath,
+      createdAt: createdAt ?? this.createdAt,
+      backupDate: backupDate ?? this.backupDate,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      sha256: sha256 ?? this.sha256,
+      status: status ?? this.status,
+      driveFileId: driveFileId ?? this.driveFileId,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      lastError: lastError ?? this.lastError,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (localPath.present) {
+      map['local_path'] = Variable<String>(localPath.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (backupDate.present) {
+      map['backup_date'] = Variable<String>(backupDate.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (driveFileId.present) {
+      map['drive_file_id'] = Variable<String>(driveFileId.value);
+    }
+    if (uploadedAt.present) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BackupRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('fileName: $fileName, ')
+          ..write('localPath: $localPath, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('backupDate: $backupDate, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('sha256: $sha256, ')
+          ..write('status: $status, ')
+          ..write('driveFileId: $driveFileId, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2100,6 +2996,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LogEntriesTable logEntries = $LogEntriesTable(this);
   late final $SellerAdjustmentsTable sellerAdjustments =
       $SellerAdjustmentsTable(this);
+  late final $AppPreferencesTable appPreferences = $AppPreferencesTable(this);
+  late final $BackupRecordsTable backupRecords = $BackupRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2110,6 +3008,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     rentalAssignments,
     logEntries,
     sellerAdjustments,
+    appPreferences,
+    backupRecords,
   ];
 }
 
@@ -4115,6 +5015,468 @@ typedef $$SellerAdjustmentsTableProcessedTableManager =
       SellerAdjustment,
       PrefetchHooks Function({bool sellerId})
     >;
+typedef $$AppPreferencesTableCreateCompanionBuilder =
+    AppPreferencesCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$AppPreferencesTableUpdateCompanionBuilder =
+    AppPreferencesCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$AppPreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $AppPreferencesTable> {
+  $$AppPreferencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AppPreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $AppPreferencesTable> {
+  $$AppPreferencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AppPreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AppPreferencesTable> {
+  $$AppPreferencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$AppPreferencesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AppPreferencesTable,
+          AppPreference,
+          $$AppPreferencesTableFilterComposer,
+          $$AppPreferencesTableOrderingComposer,
+          $$AppPreferencesTableAnnotationComposer,
+          $$AppPreferencesTableCreateCompanionBuilder,
+          $$AppPreferencesTableUpdateCompanionBuilder,
+          (
+            AppPreference,
+            BaseReferences<_$AppDatabase, $AppPreferencesTable, AppPreference>,
+          ),
+          AppPreference,
+          PrefetchHooks Function()
+        > {
+  $$AppPreferencesTableTableManager(
+    _$AppDatabase db,
+    $AppPreferencesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AppPreferencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AppPreferencesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AppPreferencesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  AppPreferencesCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => AppPreferencesCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AppPreferencesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AppPreferencesTable,
+      AppPreference,
+      $$AppPreferencesTableFilterComposer,
+      $$AppPreferencesTableOrderingComposer,
+      $$AppPreferencesTableAnnotationComposer,
+      $$AppPreferencesTableCreateCompanionBuilder,
+      $$AppPreferencesTableUpdateCompanionBuilder,
+      (
+        AppPreference,
+        BaseReferences<_$AppDatabase, $AppPreferencesTable, AppPreference>,
+      ),
+      AppPreference,
+      PrefetchHooks Function()
+    >;
+typedef $$BackupRecordsTableCreateCompanionBuilder =
+    BackupRecordsCompanion Function({
+      Value<String> id,
+      required String fileName,
+      required String localPath,
+      required DateTime createdAt,
+      required String backupDate,
+      required int sizeBytes,
+      required String sha256,
+      Value<String> status,
+      Value<String?> driveFileId,
+      Value<DateTime?> uploadedAt,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+typedef $$BackupRecordsTableUpdateCompanionBuilder =
+    BackupRecordsCompanion Function({
+      Value<String> id,
+      Value<String> fileName,
+      Value<String> localPath,
+      Value<DateTime> createdAt,
+      Value<String> backupDate,
+      Value<int> sizeBytes,
+      Value<String> sha256,
+      Value<String> status,
+      Value<String?> driveFileId,
+      Value<DateTime?> uploadedAt,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+
+class $$BackupRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $BackupRecordsTable> {
+  $$BackupRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get backupDate => $composableBuilder(
+    column: $table.backupDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get driveFileId => $composableBuilder(
+    column: $table.driveFileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BackupRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BackupRecordsTable> {
+  $$BackupRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get backupDate => $composableBuilder(
+    column: $table.backupDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get driveFileId => $composableBuilder(
+    column: $table.driveFileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BackupRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BackupRecordsTable> {
+  $$BackupRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<String> get localPath =>
+      $composableBuilder(column: $table.localPath, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get backupDate => $composableBuilder(
+    column: $table.backupDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get driveFileId => $composableBuilder(
+    column: $table.driveFileId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+}
+
+class $$BackupRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BackupRecordsTable,
+          BackupRecord,
+          $$BackupRecordsTableFilterComposer,
+          $$BackupRecordsTableOrderingComposer,
+          $$BackupRecordsTableAnnotationComposer,
+          $$BackupRecordsTableCreateCompanionBuilder,
+          $$BackupRecordsTableUpdateCompanionBuilder,
+          (
+            BackupRecord,
+            BaseReferences<_$AppDatabase, $BackupRecordsTable, BackupRecord>,
+          ),
+          BackupRecord,
+          PrefetchHooks Function()
+        > {
+  $$BackupRecordsTableTableManager(_$AppDatabase db, $BackupRecordsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BackupRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BackupRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BackupRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> fileName = const Value.absent(),
+                Value<String> localPath = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> backupDate = const Value.absent(),
+                Value<int> sizeBytes = const Value.absent(),
+                Value<String> sha256 = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> driveFileId = const Value.absent(),
+                Value<DateTime?> uploadedAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BackupRecordsCompanion(
+                id: id,
+                fileName: fileName,
+                localPath: localPath,
+                createdAt: createdAt,
+                backupDate: backupDate,
+                sizeBytes: sizeBytes,
+                sha256: sha256,
+                status: status,
+                driveFileId: driveFileId,
+                uploadedAt: uploadedAt,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String fileName,
+                required String localPath,
+                required DateTime createdAt,
+                required String backupDate,
+                required int sizeBytes,
+                required String sha256,
+                Value<String> status = const Value.absent(),
+                Value<String?> driveFileId = const Value.absent(),
+                Value<DateTime?> uploadedAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BackupRecordsCompanion.insert(
+                id: id,
+                fileName: fileName,
+                localPath: localPath,
+                createdAt: createdAt,
+                backupDate: backupDate,
+                sizeBytes: sizeBytes,
+                sha256: sha256,
+                status: status,
+                driveFileId: driveFileId,
+                uploadedAt: uploadedAt,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BackupRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BackupRecordsTable,
+      BackupRecord,
+      $$BackupRecordsTableFilterComposer,
+      $$BackupRecordsTableOrderingComposer,
+      $$BackupRecordsTableAnnotationComposer,
+      $$BackupRecordsTableCreateCompanionBuilder,
+      $$BackupRecordsTableUpdateCompanionBuilder,
+      (
+        BackupRecord,
+        BaseReferences<_$AppDatabase, $BackupRecordsTable, BackupRecord>,
+      ),
+      BackupRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4129,4 +5491,8 @@ class $AppDatabaseManager {
       $$LogEntriesTableTableManager(_db, _db.logEntries);
   $$SellerAdjustmentsTableTableManager get sellerAdjustments =>
       $$SellerAdjustmentsTableTableManager(_db, _db.sellerAdjustments);
+  $$AppPreferencesTableTableManager get appPreferences =>
+      $$AppPreferencesTableTableManager(_db, _db.appPreferences);
+  $$BackupRecordsTableTableManager get backupRecords =>
+      $$BackupRecordsTableTableManager(_db, _db.backupRecords);
 }

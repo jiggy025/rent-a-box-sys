@@ -6,6 +6,7 @@ class DashboardGuideCard extends StatelessWidget {
   const DashboardGuideCard({
     required this.state,
     required this.onOpenHelp,
+    required this.onDismissRefresher,
     super.key,
   });
 
@@ -19,24 +20,45 @@ class DashboardGuideCard extends StatelessWidget {
 
   final DashboardGuideState state;
   final VoidCallback onOpenHelp;
+  final VoidCallback onDismissRefresher;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    if (!state.showAnyGuideCard) {
+      return const SizedBox.shrink();
+    }
+
     return Card(
       color: const Color(0xFFFFF8EE),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: state.isSetupComplete
+        child: state.showCompactRefresher
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Need a quick refresher?',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Need a quick refresher?',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        key: const Key('dashboard-refresher-close'),
+                        onPressed: onDismissRefresher,
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Dismiss refresher',
+                        visualDensity: VisualDensity.compact,
+                        splashRadius: 18,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(

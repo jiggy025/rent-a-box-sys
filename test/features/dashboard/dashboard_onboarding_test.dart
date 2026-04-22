@@ -139,11 +139,59 @@ void main() {
 
     expect(find.text('Need a quick refresher?'), findsOneWidget);
     expect(find.text('Dashboard setup complete'), findsOneWidget);
+    expect(find.byKey(const Key('dashboard-refresher-close')), findsOneWidget);
     expect(find.text('Get your dashboard ready'), findsNothing);
     expect(find.text('1. Add seller'), findsNothing);
 
     await disposeTestApp(tester);
   });
+
+  testWidgets(
+    'can dismiss the compact refresher and keep help available',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      final sellerId = await db.createSeller(name: 'Mae');
+      final boxId = await db.createBox(boxNumber: '01');
+      await db.createRentalAssignment(sellerId: sellerId, boxId: boxId);
+
+      await tester.pumpWidget(
+        wrapWithTestApp(
+          const DashboardScreen(),
+          overrides: [databaseProvider.overrideWithValue(db)],
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Need a quick refresher?'), findsOneWidget);
+      expect(find.byTooltip('Help'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('dashboard-refresher-close')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Need a quick refresher?'), findsNothing);
+      expect(find.text('Dashboard setup complete'), findsNothing);
+      expect(find.byTooltip('Help'), findsOneWidget);
+
+      await disposeTestApp(tester);
+
+      await tester.pumpWidget(
+        wrapWithTestApp(
+          const DashboardScreen(),
+          overrides: [databaseProvider.overrideWithValue(db)],
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Need a quick refresher?'), findsNothing);
+      expect(find.byTooltip('Help'), findsOneWidget);
+
+      await disposeTestApp(tester);
+    },
+  );
 
   testWidgets(
     'keeps the compact refresher after setup was previously completed',
@@ -270,6 +318,17 @@ void main() {
       logEntries: 1,
       sellerAdjustments: 1,
     );
+
+    await db.setDashboardRefresherDismissed(true);
+    await expectNextGuideState(
+      iterator,
+      sellers: 1,
+      activeBoxes: 1,
+      activeAssignments: 1,
+      logEntries: 1,
+      sellerAdjustments: 1,
+    );
+    expect(iterator.current.isRefresherDismissed, isTrue);
 
     await iterator.cancel();
   });

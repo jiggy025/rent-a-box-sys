@@ -6,6 +6,7 @@ class DashboardGuideState {
     this.logEntryCount = 0,
     this.sellerAdjustmentCount = 0,
     this.hasCompletedInitialSetup = false,
+    this.isRefresherDismissed = false,
   });
 
   final int sellerCount;
@@ -14,6 +15,7 @@ class DashboardGuideState {
   final int logEntryCount;
   final int sellerAdjustmentCount;
   final bool hasCompletedInitialSetup;
+  final bool isRefresherDismissed;
 
   bool get hasSeller => sellerCount > 0;
   bool get hasActiveBox => activeBoxCount > 0;
@@ -21,6 +23,9 @@ class DashboardGuideState {
   bool get isSetupComplete =>
       hasCompletedInitialSetup ||
       (hasSeller && hasActiveBox && hasActiveAssignment);
+  bool get showSetupGuide => !isSetupComplete;
+  bool get showCompactRefresher => isSetupComplete && !isRefresherDismissed;
+  bool get showAnyGuideCard => showSetupGuide || showCompactRefresher;
 
   @override
   bool operator ==(Object other) {
@@ -31,7 +36,8 @@ class DashboardGuideState {
             other.activeAssignmentCount == activeAssignmentCount &&
             other.logEntryCount == logEntryCount &&
             other.sellerAdjustmentCount == sellerAdjustmentCount &&
-            other.hasCompletedInitialSetup == hasCompletedInitialSetup);
+            other.hasCompletedInitialSetup == hasCompletedInitialSetup &&
+            other.isRefresherDismissed == isRefresherDismissed);
   }
 
   @override
@@ -42,5 +48,6 @@ class DashboardGuideState {
     logEntryCount,
     sellerAdjustmentCount,
     hasCompletedInitialSetup,
+    isRefresherDismissed,
   );
 }

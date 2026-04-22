@@ -385,7 +385,7 @@ packages:
     source: hosted
     version: "13.2.0"
   googleapis_auth:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: googleapis_auth
       sha256: "661738b763d3e524de69df53bf4e03943e4e01e98265cebcc6684871b06a5379"
@@ -734,7 +734,7 @@ packages:
     source: hosted
     version: "1.10.2"
   sqlite3:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: sqlite3
       sha256: "56da3e13ed7d28a66f930aa2b2b29db6736a233f08283326e96321dd812030f5"

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../backups/backup_settings_screen.dart';
 import '../boxes/box_detail_screen.dart';
-import '../sellers/sellers_screen.dart';
 import '../sellers/seller_detail_screen.dart';
+import '../sellers/sellers_screen.dart';
 import '../../providers/dashboard_providers.dart';
+import '../../providers/database_provider.dart';
 import 'widgets/add_box_sheet.dart';
 import 'widgets/add_seller_sheet.dart';
 import 'widgets/box_card.dart';
@@ -28,6 +30,10 @@ class DashboardScreen extends ConsumerWidget {
     _openSheet(context, const DashboardHelpSheet());
   }
 
+  Future<void> _dismissRefresher(WidgetRef ref) {
+    return ref.read(databaseProvider).setDashboardRefresherDismissed(true);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardBoxes = ref.watch(filteredDashboardBoxesProvider);
@@ -37,6 +43,15 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const BackupSettingsScreen()),
+              );
+            },
+            icon: const Icon(Icons.cloud_upload_outlined),
+            tooltip: 'Backups',
+          ),
           IconButton(
             onPressed: () => _openHelpSheet(context),
             icon: const Icon(Icons.help_outline),
@@ -80,13 +95,16 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           children: [
             guideState.when(
-              data: (state) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: DashboardGuideCard(
-                  state: state,
-                  onOpenHelp: () => _openHelpSheet(context),
-                ),
-              ),
+              data: (state) => state.showAnyGuideCard
+                  ? Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: DashboardGuideCard(
+                        state: state,
+                        onOpenHelp: () => _openHelpSheet(context),
+                        onDismissRefresher: () => _dismissRefresher(ref),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
               loading: () => const SizedBox.shrink(),
               error: (error, stack) => const SizedBox.shrink(),
             ),
