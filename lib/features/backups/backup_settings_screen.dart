@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../providers/backup_providers.dart';
@@ -41,9 +42,16 @@ class BackupSettingsScreen extends ConsumerWidget {
       );
     } catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Google Drive connection failed: $error')),
+        SnackBar(content: Text(_googleDriveErrorMessage(error))),
       );
     }
+  }
+
+  String _googleDriveErrorMessage(Object error) {
+    if (error is PlatformException && error.code == 'sign_in_failed') {
+      return 'Google Drive setup is incomplete. Add the app package and signing SHA-1 in Google Cloud, then try again.';
+    }
+    return 'Google Drive connection failed: $error';
   }
 
   @override
