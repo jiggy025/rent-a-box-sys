@@ -146,6 +146,78 @@ void main() {
     },
   );
 
+  test('restore removes stale sqlite sidecar files before reopening', () async {
+    await db.createSeller(name: 'Before');
+    final service = LocalBackupService(
+      database: db,
+      documentsDirectory: tempDir,
+      clock: FixedPhilippineClock(DateTime.utc(2026, 4, 20, 16, 5)),
+    );
+    final backup = await service.createBackup(force: true);
+
+    await File('${dbFile.path}-wal').writeAsString('stale wal');
+    await File('${dbFile.path}-shm').writeAsString('stale shm');
+    await File('${dbFile.path}-journal').writeAsString('stale journal');
+
+    await service.restoreFromLocalFile(File(backup.localPath));
+
+    final restoredDb = AppDatabase.forFile(dbFile);
+    addTearDown(restoredDb.close);
+
+    expect(await restoredDb.watchAllSellers().first, hasLength(1));
+    expect(await File('${dbFile.path}-wal').exists(), isFalse);
+    expect(await File('${dbFile.path}-shm').exists(), isFalse);
+    expect(await File('${dbFile.path}-journal').exists(), isFalse);
+  });
+
+  test(
+    'restore reports failure when the selected file is not a database',
+    () async {
+      await db.createSeller(name: 'Before');
+      final invalidBackup = File('${tempDir.path}/invalid-drive-backup.db');
+      await invalidBackup.writeAsString('not sqlite');
+      final service = LocalBackupService(
+        database: db,
+        documentsDirectory: tempDir,
+        clock: FixedPhilippineClock(DateTime.utc(2026, 4, 20, 16, 5)),
+      );
+
+      await expectLater(
+        service.restoreFromLocalFile(invalidBackup),
+        throwsA(anything),
+      );
+    },
+  );
+
+  test('restore can recover from a cloud-download staged backup', () async {
+    await db.createSeller(name: 'Before');
+    final service = LocalBackupService(
+      database: db,
+      documentsDirectory: tempDir,
+      clock: FixedPhilippineClock(DateTime.utc(2026, 4, 20, 16, 5)),
+    );
+    final backup = await service.createBackup(force: true);
+    final cloudDownloadDirectory = Directory(
+      '${tempDir.path}/backups/cloud-downloads',
+    );
+    await cloudDownloadDirectory.create(recursive: true);
+    final cloudBackup = await File(
+      backup.localPath,
+    ).copy('${cloudDownloadDirectory.path}/${backup.fileName}');
+
+    await db.createSeller(name: 'After');
+    await service.restoreFromLocalFile(
+      cloudBackup,
+      expectedSha256: backup.sha256,
+    );
+
+    final restoredDb = AppDatabase.forFile(dbFile);
+    addTearDown(restoredDb.close);
+    final sellers = await restoredDb.watchAllSellers().first;
+
+    expect(sellers.map((seller) => seller.name), ['Before']);
+  });
+
   test('restore cleans its temporary staging file', () async {
     await db.createSeller(name: 'Before');
     final service = LocalBackupService(

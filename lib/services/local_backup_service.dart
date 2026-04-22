@@ -135,7 +135,12 @@ class LocalBackupService {
       }
 
       await database.close();
-      await preparedRestoreFile.copy(target.path);
+      await _deleteSqliteSidecarFiles(target);
+      if (await target.exists()) {
+        await target.delete();
+      }
+      await preparedRestoreFile.rename(target.path);
+      await _deleteSqliteSidecarFiles(target);
       await _recordPreRestoreSafetyBackup(
         databaseFile: target,
         safetyBackup: safetyBackup,
@@ -156,6 +161,7 @@ class LocalBackupService {
   }) async {
     final restoredDatabase = AppDatabase.forFile(databaseFile);
     try {
+      await restoredDatabase.customSelect('SELECT 1').getSingle();
       await restoredDatabase.createBackupRecord(
         fileName: p.basename(safetyBackup.path),
         localPath: safetyBackup.path,
@@ -164,10 +170,17 @@ class LocalBackupService {
         sha256: await _sha256ForFile(safetyBackup),
         createdAt: clock.now(),
       );
-    } catch (_) {
-      // The restore itself succeeded; metadata should not make that unsafe.
     } finally {
       await restoredDatabase.close();
+    }
+  }
+
+  Future<void> _deleteSqliteSidecarFiles(File databaseFile) async {
+    for (final suffix in const ['-wal', '-shm', '-journal']) {
+      final sidecar = File('${databaseFile.path}$suffix');
+      if (await sidecar.exists()) {
+        await sidecar.delete();
+      }
     }
   }
 
