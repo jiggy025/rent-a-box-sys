@@ -7,3 +7,16 @@
 .pub/
 build/
 *.iml
+
+# Local secrets and signing material
+.env
+.env.*
+*.jks
+*.keystore
+key.properties
+google-services.json
+
+# Generated release artifacts
+*.apk
+*.aab
+*.ipa

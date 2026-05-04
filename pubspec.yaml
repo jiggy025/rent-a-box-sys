@@ -1,5 +1,5 @@
 name: rent_a_box_sys
-description: "A new Flutter project."
+description: "Espasyo is a local-first Flutter app for box rental sales, seller balances, and offline backup management."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
