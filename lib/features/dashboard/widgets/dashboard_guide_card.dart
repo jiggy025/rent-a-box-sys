@@ -57,18 +57,11 @@ class DashboardGuideCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Expanded(
-              child: Text('Get your dashboard ready', style: textTheme.titleLarge),
-            ),
-            Text(
-              '$doneCount of ${setupSteps.length} done',
-              style: textTheme.bodySmall?.copyWith(fontFeatures: tabularFigures),
-            ),
-          ],
+        Text('Get your dashboard ready', style: textTheme.titleLarge),
+        const SizedBox(height: 4),
+        Text(
+          '$doneCount of ${setupSteps.length} done',
+          style: textTheme.bodySmall?.copyWith(fontFeatures: tabularFigures),
         ),
         const SizedBox(height: 12),
         ClipRRect(
