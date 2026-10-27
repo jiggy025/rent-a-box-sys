@@ -45,13 +45,15 @@ jobs:
           fi
           echo "$ESPASYO_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/espasyo.keystore"
 
-      - name: Build release APK (arm64)
+      # arm64 for phones, x64 for x86_64 emulators such as LDPlayer. An arm64-only APK crashes there:
+      # the emulator's ARM translator (houdini) cannot start Flutter's precompiled Dart VM.
+      - name: Build release APK (arm64 + x64)
         env:
           ESPASYO_KEYSTORE_PATH: ${{ runner.temp }}/espasyo.keystore
           ESPASYO_KEYSTORE_PASSWORD: ${{ secrets.ESPASYO_KEYSTORE_PASSWORD }}
           ESPASYO_KEY_ALIAS: ${{ secrets.ESPASYO_KEY_ALIAS }}
           ESPASYO_KEY_PASSWORD: ${{ secrets.ESPASYO_KEY_PASSWORD }}
-        run: flutter build apk --release --target-platform android-arm64
+        run: flutter build apk --release --target-platform android-arm64,android-x64
 
       - uses: actions/upload-artifact@v4
         with:
