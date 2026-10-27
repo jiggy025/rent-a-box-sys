@@ -139,7 +139,7 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.92,
+                    childAspectRatio: 1.08,
                   ),
                   itemCount: rows.length,
                   itemBuilder: (context, index) {
