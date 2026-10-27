@@ -46,12 +46,15 @@ class BoxCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'BOX ${summary.boxNumber}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         fontFeatures: tabularFigures,
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   _StatusPill(vacant: vacant),
                 ],
               ),
@@ -105,7 +108,7 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: vacant ? AppColors.surface : AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(999),
@@ -113,7 +116,7 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         vacant ? 'Vacant' : 'Occupied',
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: vacant ? AppColors.vacant : AppColors.muted,
               fontWeight: FontWeight.w600,
             ),
