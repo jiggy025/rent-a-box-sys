@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+/// The bundled font family (declared in pubspec.yaml under `fonts:`).
+const appFontFamily = 'DM Sans';
 
 /// Espasyo's colours in one place. Screens read these through the theme, or directly
 /// for the few things the theme has no slot for (a vacant box, a money figure).
@@ -29,7 +31,8 @@ class AppColors {
 const tabularFigures = [FontFeature.tabularFigures()];
 
 ThemeData buildAppTheme() {
-  final base = GoogleFonts.dmSansTextTheme();
+  // A text theme already set in the bundled family, so every weight below picks its own font file
+  final base = ThemeData(useMaterial3: true, fontFamily: appFontFamily).textTheme;
   final textTheme = base
       .apply(bodyColor: AppColors.ink2, displayColor: AppColors.ink)
       .copyWith(
@@ -87,6 +90,7 @@ ThemeData buildAppTheme() {
 
   return ThemeData(
     useMaterial3: true,
+    fontFamily: appFontFamily,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AppColors.ground,
     textTheme: textTheme,
@@ -111,6 +115,7 @@ ThemeData buildAppTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(64, controlHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         shape: controlShape,
         textStyle: textTheme.labelLarge?.copyWith(fontSize: 16),
       ),
@@ -118,6 +123,7 @@ ThemeData buildAppTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(64, controlHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         shape: controlShape,
         foregroundColor: AppColors.ink,
         side: const BorderSide(color: AppColors.lineStrong),

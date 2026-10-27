@@ -67,6 +67,19 @@ flutter:
   assets:
     - assets/branding/espasyo.png
 
+  # DM Sans ships inside the app (SIL OFL, see assets/fonts/OFL.txt) so text looks right offline,
+  # and each weight uses its real file instead of a faux-bold regular.
+  fonts:
+    - family: DM Sans
+      fonts:
+        - asset: assets/fonts/DMSans-Regular.ttf
+        - asset: assets/fonts/DMSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/DMSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/DMSans-Bold.ttf
+          weight: 700
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
