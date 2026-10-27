@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/app_theme.dart';
 import '../../models/seller_adjustment_type.dart';
 import '../../models/seller_history_record.dart';
 import '../../models/seller_transaction_record.dart';
@@ -63,6 +64,7 @@ class SellerDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currency = NumberFormat.currency(symbol: 'PHP ', decimalDigits: 2);
+    final textTheme = Theme.of(context).textTheme;
     final summaryAsync = ref.watch(sellerLedgerSummaryProvider(sellerId));
     final activeBoxesAsync = ref.watch(sellerActiveBoxesProvider(sellerId));
     final transactionsAsync = ref.watch(sellerTransactionHistoryProvider(sellerId));
@@ -79,115 +81,149 @@ class SellerDetailScreen extends ConsumerWidget {
           }
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
             children: [
-              Text(
-                summary.sellerName,
-                style: Theme.of(context).textTheme.headlineMedium,
+              // 1. The money: what can be paid out now, and everything sold to date
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(summary.sellerName, style: textTheme.titleLarge),
+                      const SizedBox(height: 20),
+                      Text('Available Balance', style: textTheme.bodySmall),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          currency.format(summary.availableBalance),
+                          key: const Key('seller-available-balance-value'),
+                          style: textTheme.headlineLarge,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.line),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text('Lifetime Sales', style: textTheme.bodyMedium),
+                            ),
+                            Text(
+                              currency.format(summary.lifetimeSales),
+                              style: textTheme.titleMedium?.copyWith(
+                                fontFeatures: tabularFigures,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
+
+              // 2. Actions: paying out is the everyday one, so it is the one filled button
+              FilledButton.icon(
+                onPressed: () => _openAdjustmentSheet(
+                  context,
+                  SellerAdjustmentType.cashOut,
+                ),
+                icon: const Icon(Icons.payments_outlined),
+                label: const Text('Cash Out'),
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  _SummaryPanel(
-                    label: 'Available Balance',
-                    value: currency.format(summary.availableBalance),
-                    valueKey: const Key('seller-available-balance-value'),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _openAdjustmentSheet(
+                        context,
+                        SellerAdjustmentType.manualDeduction,
+                      ),
+                      child: const Text('Manual Deduction'),
+                    ),
                   ),
-                  _SummaryPanel(
-                    label: 'Lifetime Sales',
-                    value: currency.format(summary.lifetimeSales),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                      ),
+                      onPressed: () => _confirmMarkInactive(context, ref),
+                      child: const Text('Mark Inactive'),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  FilledButton(
-                    onPressed: () => _openAdjustmentSheet(
-                      context,
-                      SellerAdjustmentType.cashOut,
-                    ),
-                    child: const Text('Cash Out'),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => _openAdjustmentSheet(
-                      context,
-                      SellerAdjustmentType.manualDeduction,
-                    ),
-                    child: const Text('Manual Deduction'),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => _confirmMarkInactive(context, ref),
-                    child: const Text('Mark Inactive'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
+
+              // 3. Records
               _SectionCard(
                 title: 'Active Boxes',
                 child: activeBoxesAsync.when(
                   data: (boxes) {
                     if (boxes.isEmpty) {
-                      return const Text('No active boxes.');
+                      return const _EmptyRow('No active boxes.');
                     }
-
-                    return Column(
+                    return _Rows(
                       children: [
                         for (final box in boxes)
                           ListTile(
-                            contentPadding: EdgeInsets.zero,
                             title: Text('Box ${box.boxNumber}'),
                             subtitle: const Text('Currently occupied'),
-                            trailing: Text(currency.format(box.total)),
+                            trailing: _Money(currency.format(box.total)),
                           ),
                       ],
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => Text(error.toString()),
+                  loading: () => const _LoadingRow(),
+                  error: (error, stack) => _EmptyRow(error.toString()),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _SectionCard(
                 title: 'Transaction History',
                 child: transactionsAsync.when(
                   data: (transactions) {
                     if (transactions.isEmpty) {
-                      return const Text('No transactions yet.');
+                      return const _EmptyRow('No transactions yet.');
                     }
-
-                    return Column(
+                    return _Rows(
                       children: [
                         for (final entry in transactions)
                           ListTile(
-                            contentPadding: EdgeInsets.zero,
                             title: Text(entry.title),
                             subtitle: Text(_transactionSubtitle(entry)),
-                            trailing: Text(
+                            trailing: _Money(
                               '${entry.amount >= 0 ? '+' : '-'}${currency.format(entry.amount.abs())}',
+                              color: entry.amount >= 0 ? AppColors.vacant : AppColors.ink,
                             ),
                           ),
                       ],
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => Text(error.toString()),
+                  loading: () => const _LoadingRow(),
+                  error: (error, stack) => _EmptyRow(error.toString()),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _SectionCard(
                 title: 'Assignment History',
                 child: historyAsync.when(
                   data: (history) {
                     if (history.isEmpty) {
-                      return const Text('No assignment history yet.');
+                      return const _EmptyRow('No assignment history yet.');
                     }
-
-                    return Column(
+                    return _Rows(
                       children: [
                         for (final record in history)
                           _HistoryTile(
@@ -197,8 +233,8 @@ class SellerDetailScreen extends ConsumerWidget {
                       ],
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => Text(error.toString()),
+                  loading: () => const _LoadingRow(),
+                  error: (error, stack) => _EmptyRow(error.toString()),
                 ),
               ),
             ],
@@ -376,47 +412,7 @@ class _SellerAdjustmentSheetState extends ConsumerState<SellerAdjustmentSheet> {
   }
 }
 
-class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel({
-    required this.label,
-    required this.value,
-    this.valueKey,
-  });
-
-  final String label;
-  final String value;
-  final Key? valueKey;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 170,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFCF7),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD9C3A2)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                key: valueKey,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
+/// A titled group of records: the title sits above a white card of rows.
 class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.title, required this.child});
 
@@ -425,23 +421,81 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF7),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFD9C3A2)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            child,
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
         ),
+        Card(child: child),
+      ],
+    );
+  }
+}
+
+/// List rows separated by inset hairlines, the way a receipt separates lines.
+class _Rows extends StatelessWidget {
+  const _Rows({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const Divider(indent: 16, endIndent: 16),
+          children[i],
+        ],
+      ],
+    );
+  }
+}
+
+class _Money extends StatelessWidget {
+  const _Money(this.text, {this.color});
+
+  final String text;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontFeatures: tabularFigures,
+            color: color,
+          ),
+    );
+  }
+}
+
+class _EmptyRow extends StatelessWidget {
+  const _EmptyRow(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
       ),
+    );
+  }
+}
+
+class _LoadingRow extends StatelessWidget {
+  const _LoadingRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Center(child: CircularProgressIndicator()),
     );
   }
 }
@@ -455,10 +509,9 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: EdgeInsets.zero,
       title: Text('Box ${record.boxNumber}'),
       subtitle: Text(record.isActive ? 'Active assignment' : 'Past assignment'),
-      trailing: Text(currency.format(record.total)),
+      trailing: _Money(currency.format(record.total)),
     );
   }
 }
