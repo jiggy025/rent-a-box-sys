@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_a_box_sys/database/app_database.dart';
 import 'package:rent_a_box_sys/features/dashboard/dashboard_screen.dart';
+import 'package:rent_a_box_sys/features/dashboard/widgets/box_card.dart';
 import 'package:rent_a_box_sys/models/dashboard_box_summary.dart';
 import 'package:rent_a_box_sys/providers/dashboard_providers.dart';
 import 'package:rent_a_box_sys/providers/database_provider.dart';
@@ -130,7 +131,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ella'), findsOneWidget);
-    expect(find.textContaining('0.00'), findsOneWidget);
+    // The box card's own total resets; the dashboard summary shows a total too, so look inside the card
+    expect(
+      find.descendant(of: find.byType(BoxCard), matching: find.textContaining('0.00')),
+      findsOneWidget,
+    );
 
     await disposeTestApp(tester);
   });
