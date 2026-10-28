@@ -1,5 +1,6 @@
 # Espasyo
 
+[![Android APK](https://github.com/jiggy025/rent-a-box-sys/actions/workflows/android-apk.yml/badge.svg)](https://github.com/jiggy025/rent-a-box-sys/actions/workflows/android-apk.yml)
 ![Flutter](https://img.shields.io/badge/Flutter-Android-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
 ![Local First](https://img.shields.io/badge/local--first-offline_ready-5C7C3A)
@@ -8,52 +9,50 @@
 
 Espasyo is a local-first Android app for box rental stores, kiosks, and shared selling spaces. It helps cashiers and store owners manage sellers, boxes, sales logs, balances, cash-outs, manual deductions, and backups from one simple Flutter app.
 
-The project was designed around real counter work: quick seller lookup, fast box assignment, offline records, and recoverable data through local SQLite snapshots plus optional Google Drive app-data backups.
+The project is built around real counter work: fast box assignment, quick vacancy checks, 52 px touch targets for one-handed operation, offline-first SQLite records, and automatic cloud backups to Google Drive.
 
 <p align="center">
-  <img src="docs/assets/showcase/localized-gensan-rental-hub.png" alt="Espasyo localized Gensan rental hub" width="72%">
+  <img src="docs/assets/showcase/dashboard.png" alt="Espasyo Counter Dashboard" width="45%">
+  &nbsp;&nbsp;
+  <img src="docs/assets/showcase/seller-detail.png" alt="Espasyo Seller Ledger and Payouts" width="45%">
 </p>
 
 ## Highlights
 
-- Local-first storage with Drift and SQLite, so daily sales work continues offline.
-- Seller and box management for stores where one seller may rent multiple boxes.
-- Per-box sales logging with item name, price, and claimer details.
-- Seller balances, lifetime sales, cash-outs, and manual deductions.
-- Vacant box flow for quickly occupying available boxes.
-- Assignment history and transaction history for cleaner records.
-- Local backup snapshots with optional Google Drive app-data upload and restore.
-- Android-focused release build with arm64 APK support.
+- **Local-first storage with Drift and SQLite**: Daily sales and counter operations run 100% offline with zero latency.
+- **Counter-Tool UI Design**: 52 px controls, high-contrast typography in bundled DM Sans, and tabular figures for monetary alignment.
+- **Live Setup Checklist**: Step-by-step onboarding guide that ticks off automatically as sellers, boxes, and sales are added.
+- **Real-time Box & Vacancy Management**: Color-coded box states (white for occupied, green for vacant "ready to rent") with one-tap occupancy.
+- **Per-box Sales Logging**: Fast entry for item name, price, and claimer details with running totals.
+- **Seller Ledger & Payouts**: Clear tracking of available balance, lifetime sales, cash-out workflows, and audit history.
+- **Local Snapshots & Google Drive Backup**: Instant local SQLite backups with optional synchronization to Google Drive's hidden `appDataFolder`.
+- **Dual-Architecture Release APKs**: Automated GitHub Actions CI producing signed release builds for arm64 (phones) and x86_64 (emulators).
 
 ## Showcase
 
-| Onboarding | Dashboard |
+| Counter Dashboard | Seller Ledger & Payouts |
 | --- | --- |
-| <img src="docs/assets/showcase/fast-onboarding-check.png" alt="Fast onboarding checklist" width="100%"> | <img src="docs/assets/showcase/live-multi-unit-performance.png" alt="Live multi-unit dashboard" width="100%"> |
+| <img src="docs/assets/showcase/dashboard.png" alt="Espasyo Counter Dashboard" width="100%"> | <img src="docs/assets/showcase/seller-detail.png" alt="Seller Ledger and Payouts" width="100%"> |
+| **Summary metrics, occupied boxes, and vacant rental cards** | **Available balance, lifetime sales, and cash-out action** |
 
-| Sales Logging | Box Assignment |
+| Box Detail & Sales Log | Vacant Box Flow |
 | --- | --- |
-| <img src="docs/assets/showcase/meticulous-sales-logging.png" alt="Meticulous sales logging" width="100%"> | <img src="docs/assets/showcase/fast-box-assignment.png" alt="Fast box assignment" width="100%"> |
+| <img src="docs/assets/showcase/box-detail.png" alt="Box Detail and Sales Logging" width="100%"> | <img src="docs/assets/showcase/box-vacant.png" alt="Vacant Box Ready to Rent" width="100%"> |
+| **Per-box active sales logging and divided ledger** | **Instant vacancy check and fast rental assignment** |
 
-| Finance Control | Seller Reports |
-| --- | --- |
-| <img src="docs/assets/showcase/unified-payout-finance-control.png" alt="Unified payout and finance control" width="100%"> | <img src="docs/assets/showcase/seller-performance-reports.png" alt="Seller performance reports" width="100%"> |
-
-| Vacancy Check | Admin Setup |
-| --- | --- |
-| <img src="docs/assets/showcase/instant-vacancy-check.png" alt="Instant vacancy check" width="100%"> | <img src="docs/assets/showcase/admin-setup-menu.png" alt="Admin setup menu" width="100%"> |
-
-| Profitability |
+| Live Setup Checklist |
 | --- |
-| <img src="docs/assets/showcase/per-unit-profitability.png" alt="Per-unit profitability" width="100%"> |
+| <img src="docs/assets/showcase/first-run.png" alt="Dynamic Setup Checklist" width="50%"> |
+| **Interactive setup guide that ticks off as records are created** |
 
 ## Tech Stack
 
-- Flutter and Dart
-- Riverpod for state management
-- Drift over SQLite for local persistence
-- Google Sign-In and Google Drive API for optional cloud backup
-- Android arm64 APK builds
+- **Framework**: Flutter 3.x & Dart
+- **State Management**: Riverpod
+- **Database & Persistence**: Drift with SQLite
+- **Typography**: Bundled DM Sans (OFL) with Medium, SemiBold, and Bold weights
+- **Cloud Sync**: Google Drive API (`appDataFolder`) & Google Sign-In
+- **CI/CD**: GitHub Actions (automated testing, keystore restoration, and release APK packaging)
 
 ## Getting Started
 
@@ -75,16 +74,16 @@ Run the test suite:
 flutter test
 ```
 
-Build an optimized arm64 release APK:
+Build an optimized release APK:
 
 ```powershell
-flutter build apk --release --target-platform android-arm64 --split-per-abi --obfuscate --split-debug-info=build/symbols
+flutter build apk --release --target-platform android-arm64,android-x64
 ```
 
 The APK is generated at:
 
 ```text
-build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+build/app/outputs/flutter-apk/app-release.apk
 ```
 
 ## Google Drive Backups
