@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../models/dashboard_guide_state.dart';
 
 class DashboardGuideCard extends StatelessWidget {
@@ -22,106 +23,194 @@ class DashboardGuideCard extends StatelessWidget {
   final VoidCallback onOpenHelp;
   final VoidCallback onDismissRefresher;
 
+  /// Whether each setup step is already done, read from the shop's real counts,
+  /// in the same order as [setupSteps].
+  List<bool> get _stepsDone => [
+        state.hasSeller,
+        state.hasActiveBox,
+        state.hasActiveAssignment,
+        state.logEntryCount > 0,
+        state.sellerAdjustmentCount > 0,
+      ];
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     if (!state.showAnyGuideCard) {
       return const SizedBox.shrink();
     }
 
     return Card(
-      color: const Color(0xFFFFF8EE),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: state.showCompactRefresher
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Need a quick refresher?',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      IconButton(
-                        key: const Key('dashboard-refresher-close'),
-                        onPressed: onDismissRefresher,
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Dismiss refresher',
-                        visualDensity: VisualDensity.compact,
-                        splashRadius: 18,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+        child: state.showCompactRefresher ? _buildRefresher(context) : _buildSetup(context),
+      ),
+    );
+  }
+
+  /// First run: a checklist that ticks itself off as the shop is set up.
+  Widget _buildSetup(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final done = _stepsDone;
+    final doneCount = done.where((d) => d).length;
+    final nextIndex = done.indexOf(false); // -1 when every step is done
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Get your dashboard ready', style: textTheme.titleLarge),
+        const SizedBox(height: 4),
+        Text(
+          '$doneCount of ${setupSteps.length} done',
+          style: textTheme.bodySmall?.copyWith(fontFeatures: tabularFigures),
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: doneCount / setupSteps.length,
+            minHeight: 6,
+            backgroundColor: AppColors.line,
+            valueColor: const AlwaysStoppedAnimation(AppColors.vacant),
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (var i = 0; i < setupSteps.length; i++)
+          _StepRow(
+            label: setupSteps[i],
+            status: done[i]
+                ? _StepStatus.done
+                : i == nextIndex
+                    ? _StepStatus.next
+                    : _StepStatus.todo,
+          ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: onOpenHelp,
+          icon: const Icon(Icons.menu_book_outlined),
+          label: const Text('Open help'),
+        ),
+      ],
+    );
+  }
+
+  /// After setup: a small, dismissible summary of what the shop holds.
+  Widget _buildRefresher(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text('Need a quick refresher?', style: textTheme.titleMedium),
+            ),
+            IconButton(
+              key: const Key('dashboard-refresher-close'),
+              onPressed: onDismissRefresher,
+              icon: const Icon(Icons.close),
+              tooltip: 'Dismiss refresher',
+              visualDensity: VisualDensity.compact,
+              splashRadius: 18,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Dashboard setup complete',
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _CountChip(label: 'Sellers', value: state.sellerCount),
+            _CountChip(label: 'Boxes', value: state.activeBoxCount),
+            _CountChip(label: 'Assignments', value: state.activeAssignmentCount),
+            _CountChip(label: 'Sales', value: state.logEntryCount),
+            _CountChip(label: 'Payouts', value: state.sellerAdjustmentCount),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: onOpenHelp,
+          icon: const Icon(Icons.help_outline),
+          label: const Text('Open help'),
+        ),
+      ],
+    );
+  }
+}
+
+enum _StepStatus { done, next, todo }
+
+/// One checklist line: a status mark, then the step. The next step to do is the only one in colour.
+class _StepRow extends StatelessWidget {
+  const _StepRow({required this.label, required this.status});
+
+  final String label;
+  final _StepStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final Widget mark = switch (status) {
+      _StepStatus.done => Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(color: AppColors.vacant, shape: BoxShape.circle),
+          child: const Icon(Icons.check, size: 16, color: Colors.white),
+        ),
+      _StepStatus.next => Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.accent, width: 2),
+          ),
+        ),
+      _StepStatus.todo => Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.lineStrong, width: 1.5),
+          ),
+        ),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          mark,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: switch (status) {
+                _StepStatus.done => textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                _StepStatus.next => textTheme.bodyLarge?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Dashboard setup complete',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _CountChip(label: 'Sellers', value: state.sellerCount),
-                      _CountChip(label: 'Boxes', value: state.activeBoxCount),
-                      _CountChip(
-                        label: 'Assignments',
-                        value: state.activeAssignmentCount,
-                      ),
-                      _CountChip(label: 'Sales', value: state.logEntryCount),
-                      _CountChip(
-                        label: 'Payouts',
-                        value: state.sellerAdjustmentCount,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton.icon(
-                    onPressed: onOpenHelp,
-                    icon: const Icon(Icons.help_outline),
-                    label: const Text('Open help'),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Get your dashboard ready',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Follow these steps to start tracking sellers, boxes, and payouts from the dashboard.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  for (final step in setupSteps) ...[
-                    Text(step, style: Theme.of(context).textTheme.bodyMedium),
-                    const SizedBox(height: 8),
-                  ],
-                  const SizedBox(height: 4),
-                  TextButton.icon(
-                    onPressed: onOpenHelp,
-                    icon: const Icon(Icons.menu_book_outlined),
-                    label: const Text('Open help'),
-                  ),
-                ],
+                _StepStatus.todo => textTheme.bodyMedium?.copyWith(color: AppColors.ink2),
+              },
+            ),
+          ),
+          if (status == _StepStatus.next)
+            Text(
+              'Next',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w600,
               ),
+            ),
+        ],
       ),
     );
   }
@@ -135,14 +224,29 @@ class _CountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE7D5BE)),
+        border: Border.all(color: AppColors.line),
       ),
-      child: Text('$label: $value'),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: '$label ', style: textTheme.labelMedium?.copyWith(color: AppColors.muted)),
+            TextSpan(
+              text: '$value',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w700,
+                fontFeatures: tabularFigures,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

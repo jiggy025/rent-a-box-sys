@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/app_theme.dart';
 import '../../models/seller_ledger_summary.dart';
 import '../../providers/seller_providers.dart';
 import '../dashboard/widgets/add_seller_sheet.dart';
@@ -88,80 +89,90 @@ class _SellerSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(symbol: 'PHP ', decimalDigits: 2);
+    final textTheme = Theme.of(context).textTheme;
+    final boxes = summary.activeBoxesCount;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: const Color(0xFFFFFCF7),
-          border: Border.all(color: const Color(0xFFD9C3A2)),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 16,
-              offset: Offset(0, 8),
-              color: Color(0x12000000),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    summary.sellerName,
-                    style: Theme.of(context).textTheme.titleLarge,
+    // Same card language as the dashboard: white card, the balance set large, details quiet below
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      summary.sellerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                Chip(label: Text(summary.isActive ? 'Active' : 'Inactive')),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              currency.format(summary.availableBalance),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${summary.activeBoxesCount} active box${summary.activeBoxesCount == 1 ? '' : 'es'}',
-            ),
-            const SizedBox(height: 12),
-            _MetricBlock(
-              label: 'Lifetime Sales',
-              value: currency.format(summary.lifetimeSales),
-            ),
-          ],
+                  const SizedBox(width: 8),
+                  _ActivePill(active: summary.isActive),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text('Available balance', style: textTheme.bodySmall),
+              const SizedBox(height: 2),
+              Text(
+                currency.format(summary.availableBalance),
+                style: textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '$boxes active box${boxes == 1 ? '' : 'es'}',
+                      style: textTheme.bodyMedium,
+                    ),
+                  ),
+                  Text('Lifetime Sales', style: textTheme.bodySmall),
+                  const SizedBox(width: 8),
+                  Text(
+                    currency.format(summary.lifetimeSales),
+                    style: textTheme.titleSmall?.copyWith(
+                      color: AppColors.ink,
+                      fontFeatures: tabularFigures,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _MetricBlock extends StatelessWidget {
-  const _MetricBlock({required this.label, required this.value});
+class _ActivePill extends StatelessWidget {
+  const _ActivePill({required this.active});
 
-  final String label;
-  final String value;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4EBDD),
-        borderRadius: BorderRadius.circular(16),
+        color: active ? AppColors.vacantSoft : AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: active ? AppColors.vacant.withValues(alpha: 0.35) : AppColors.line),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 6),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
-        ],
+      child: Text(
+        active ? 'Active' : 'Inactive',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: active ? AppColors.vacant : AppColors.muted,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }

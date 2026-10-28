@@ -30,11 +30,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // The cloud build (.github/workflows/android-apk.yml) hands over the same keystore the installed
+    // app was signed with, so its APK installs as an update and keeps the shop's local data.
+    // Without those variables (a local build), release falls back to this machine's debug key as before.
+    val ciKeystore = System.getenv("ESPASYO_KEYSTORE_PATH")
+    signingConfigs {
+        if (ciKeystore != null) {
+            create("ci") {
+                storeFile = file(ciKeystore)
+                storePassword = System.getenv("ESPASYO_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ESPASYO_KEY_ALIAS")
+                keyPassword = System.getenv("ESPASYO_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (ciKeystore != null) signingConfigs.getByName("ci") else signingConfigs.getByName("debug")
         }
     }
 }
